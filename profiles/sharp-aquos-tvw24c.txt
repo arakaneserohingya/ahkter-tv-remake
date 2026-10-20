@@ -1,0 +1,36 @@
+# Debloat profile for Sharp AQUOS-TVW24C (Android TV 14, Malaysia firmware).
+# Built from the TV's own package list, 2026-10-20. Disables only — nothing is uninstalled.
+# Undo everything with: ./restore.sh profiles/sharp-aquos-tvw24c.txt
+# Keeps: tuner inputs, Chromecast, Miracast, remote/Bluetooth, keyboard, Play Store/Services,
+# firmware updates, USB media player, the Azan player, and every app installed from /data.
+
+# telemetry / ads tracking
+tv.anoki.acr.anokiacroptin
+com.android.adservices.api
+com.android.ondevicepersonalization.services
+com.android.federatedcompute.services
+com.google.android.feedback
+
+# Sharp content / recommendations / demos
+jp.co.sharp.av.android.asia.sharpcocorovision
+jp.co.sharp.av.android.tw.sharpcocorovision
+jp.co.sharp.av.android.asia.sharpselect
+jp.co.sharp.av.android.asia.favapp
+jp.co.sharp.av.android.epopdemo
+jp.co.sharp.av.android.asia.epoplauncher
+jp.co.sharp.av.android.storedemoapplication
+com.mediatek.tv.retaildemo
+jp.co.sharp.av.android.asia.webemanual
+
+# preloaded Google extras not needed on this TV
+com.google.android.play.games
+com.google.android.youtube.tvmusic
+com.google.android.marvin.talkback
+
+# interactive-TV middleware not used in Malaysia
+org.obs.mhegservice
+
+# voice assistant — if you never use voice search, remove the # from these three lines
+#com.google.android.katniss
+#com.android.hotwordenrollment.okgoogle
+#com.android.hotwordenrollment.xgoogle

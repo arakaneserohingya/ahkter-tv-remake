@@ -1,0 +1,6 @@
+# Run ONLY after the new launcher is installed and set as Home.
+# Disables the stock Google TV launcher and Sharp's launcher extras.
+# Undo: ./restore.sh profiles/sharp-aquos-tvw24c-launcher-off.txt
+com.google.android.apps.tv.launcherx
+com.mediatek.tv.launcher.partner
+jp.co.sharp.av.android.asia.cocorovisionlauncher
