@@ -15,10 +15,15 @@ Everything runs locally on your TV, requires under 40 MB of RAM, and is **100% r
 | ![Launcher Home](docs/images/launcher-home.png) | ![App Grid](docs/images/launcher-grid.png) |
 | *Personalized greeting, Hijri calendar, prayer countdown, and glowing dock* | *Custom 16:9 banners, including Samsung Smart View / Miracast* |
 
-| Miracast (Smart View) Tile | Phone Remote (Web App) |
+| Miracast (Smart View) Tile | App Tile Menu (Remote Long-Press) |
 |:---:|:---:|
-| <img src="docs/images/miracast-tile.png" alt="Miracast Smart View Tile" width="340"> | <img src="docs/images/phone-remote.png" alt="Phone remote: trackpad, buttons and keyboard" width="170">&nbsp;&nbsp;<img src="docs/images/phone-apps.png" alt="Phone remote: apps and inputs" width="170"> |
-| *Native screen casting tile sorted cleanly under 'M'* | *Zero-install touch remote, keyboard, and app launcher at `http://<TV-IP>:8080`* |
+| <img src="docs/images/miracast-tile.png" alt="Miracast Smart View Tile" width="340"> | <img src="docs/images/tv-remote-menu.png" alt="Remote Long Press Context Menu" width="340"> |
+| *Native screen casting tile sorted cleanly under 'M'* | *Long-press OK to Open, Add/Remove from dock, Reorder, Replace, or Uninstall* |
+
+| Phone Remote: Siri Remote | Phone Remote: Apps & Inputs | Phone Remote: 4K Wallpapers |
+|:---:|:---:|:---:|
+| <img src="docs/images/phone-remote.png" alt="Phone remote: trackpad, buttons and keyboard" width="220"> | <img src="docs/images/phone-apps.png" alt="Phone remote: apps and inputs" width="220"> | <img src="docs/images/phone-unsplash.png" alt="Phone remote: Unsplash 4K Wallpapers" width="220"> |
+| *Zero-install Apple TV touch remote with trackpad & volume* | *Quick-launch inputs and all installed TV apps* | *Browse curated 4K Unsplash photography & set on TV* |
 
 | Live TV App | Category Sidebar |
 |:---:|:---:|
@@ -244,6 +249,13 @@ No app needs to be installed on your phone. The TV hosts its own remote control 
    * **On Android**: Tap the three dots menu (⋮) → tap **Install App** or **Add to Home Screen**.
 6. You now have an ad-free, full-screen touch remote with trackpad, live keyboard typing, and photo uploader!
 
+### 📱 Phone Remote Tabs & Features
+
+| Remote (Apple TV Siri Remote) | Apps & Inputs Drawer | Wallpapers & Unsplash 4K Explorer |
+|:---:|:---:|:---:|
+| <img src="docs/images/phone-remote.png" alt="Touch Remote Screen" width="230"> | <img src="docs/images/phone-apps.png" alt="Apps Drawer Screen" width="230"> | <img src="docs/images/phone-unsplash.png" alt="Unsplash 4K Explorer Screen" width="230"> |
+| *Smooth fluid trackpad, physical D-pad toggle, volume rocker, TV power, and real-time search typing* | *Instant 1-tap switching between TV inputs (HDMI 1-4, AV) and launching any TV app* | *Switch rotation modes (`Mix Both`, `Local`, `Unsplash`), browse 4K collections, and send photos to TV* |
+
 ---
 
 ## 🕹️ Everyday Controls & Remote Cheat-Sheet
@@ -259,6 +271,19 @@ No app needs to be installed on your phone. The TV hosts its own remote control 
 | **View Full Prayer Timetable** | Click the **Time / Prayer text** in the top-left corner |
 | **Screen Cast (Android/Samsung)** | Click the **Miracast (Smart View)** tile in the app grid |
 | **Screen Mirror (Apple/iPhone)** | Click the **AirPlay** pill in the top menu |
+
+### 🎛️ On-Screen Tile Functions (Long-Press Remote OK)
+
+<p align="center">
+  <img src="docs/images/tv-remote-menu.png" alt="On-Screen Tile Context Menu" width="600">
+</p>
+
+Long-press **OK / Center** (or press the **Menu** button) on any dock tile or grid app to open its glass context menu:
+* **▶ Open**: Launch the selected app directly.
+* **📌 Remove from dock / Add to dock**: Pin apps to the home dock row or return them to the grid below.
+* **↔ Reorder…**: Interactive reordering mode (`Move Left`, `Move Right`, `Move to First`, `Move to Last`, `Done`) plus live remote **D-pad Left / Right** shortcuts to nudge the tile in real time.
+* **🔄 Replace app…**: Choose any installed app from a list to swap with the selected dock tile.
+* **🗑 Uninstall**: Triggers the official native Android TV uninstallation dialog for non-system apps.
 
 ---
 
