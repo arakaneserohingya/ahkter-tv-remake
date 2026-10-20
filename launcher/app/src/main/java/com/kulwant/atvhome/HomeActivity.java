@@ -54,7 +54,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
 
     private enum Zone { TOP, DOCK, GRID }
 
-    private static final int PILLS = 4;
+    private static final int PILLS = 5;
     /** apps per row, dock and grid (config.xml: columns) */
     private int COLS;
 
@@ -84,6 +84,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private TileAdapter dockAdapter, gridAdapter;
     private InputsMenu inputs;
     private DockMenu dockMenu;
+    private WallpaperMenu wallpaperMenu;
 
     // dock editing (long-press OK on a tile): the dock list itself lives in prefs, see AppRepo
     private static final int MENU_NONE = 0, MENU_DOCK = 1, MENU_GRID = 2, MENU_PICKER = 3;
@@ -200,6 +201,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         super.onNewIntent(intent);
         // Home pressed while already home: close menus and return to the dock.
         if (inputs.isOpen()) inputs.close();
+        if (wallpaperMenu != null && wallpaperMenu.isOpen()) wallpaperMenu.close();
         if (dockMenu.isOpen()) dockMenu.close();
         if (zone == Zone.GRID && hasWindowFocus()) {
             zone = Zone.DOCK;
@@ -381,9 +383,10 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         pillRow.setOrientation(LinearLayout.HORIZONTAL);
         pills[0] = pill(R.drawable.ic_input, "Inputs");
         pills[1] = pill(R.drawable.ic_airplay, "AirPlay");
-        pills[2] = pill(R.drawable.ic_wifi, "Wi-Fi");
-        wifiText = (TextView) ((ViewGroup) pills[2]).getChildAt(1);
-        pills[3] = pill(R.drawable.ic_settings, null);
+        pills[2] = pill(R.drawable.ic_wallpaper, "Wallpaper");
+        pills[3] = pill(R.drawable.ic_wifi, "Wi-Fi");
+        wifiText = (TextView) ((ViewGroup) pills[3]).getChildAt(1);
+        pills[4] = pill(R.drawable.ic_settings, null);
         for (int i = 0; i < PILLS; i++) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(36));
             if (i > 0) lp.leftMargin = dp(10);
@@ -483,6 +486,26 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         dockMenu.setOnChoiceListener(this::onDockMenuChoice);
         root.addView(dockMenu.panel);
 
+        wallpaperMenu = new WallpaperMenu(this, new WallpaperMenu.Callback() {
+            @Override
+            public void onNext() {
+                main.removeCallbacks(nextWallpaper);
+                nextWallpaper.run();
+            }
+
+            @Override
+            public void onDeleteCurrent() {
+                if (wallpapers.isEmpty()) return;
+                Object cur = wallpapers.get(Math.min(wpIdx, wallpapers.size() - 1));
+                if (cur instanceof java.io.File) {
+                    String name = ((java.io.File) cur).getName().replace(".jpg", "");
+                    Wallpapers.delete(HomeActivity.this, name);
+                    Toast.makeText(HomeActivity.this, "Wallpaper removed", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        root.addView(wallpaperMenu.panel);
+
         root.setOnGenericMotionListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_SCROLL) {
                 float vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
@@ -501,6 +524,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 if (inputs.isOpen()) { inputs.close(); return true; }
+                if (wallpaperMenu.isOpen()) { wallpaperMenu.close(); return true; }
                 if (dockMenu.isOpen()) { dockMenu.close(); return true; }
                 return false;
             }
@@ -850,6 +874,14 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
             } else inputs.close();   // back, left, right
             return true;
         }
+        if (wallpaperMenu.isOpen()) {
+            if (k == KeyEvent.KEYCODE_DPAD_UP) wallpaperMenu.move(-1);
+            else if (k == KeyEvent.KEYCODE_DPAD_DOWN) wallpaperMenu.move(1);
+            else if (select && e.getRepeatCount() == 0) {
+                wallpaperMenu.executeSelected();
+            } else wallpaperMenu.close();
+            return true;
+        }
         if (dockMenu.isOpen()) {
             if (k == KeyEvent.KEYCODE_DPAD_UP) dockMenu.move(-1);
             else if (k == KeyEvent.KEYCODE_DPAD_DOWN) dockMenu.move(1);
@@ -937,6 +969,10 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
             } else if (topIdx == 1) {
                 launchAirPlay();
             } else if (topIdx == 2) {
+                int[] loc = new int[2];
+                pills[2].getLocationInWindow(loc);
+                wallpaperMenu.open(loc[0], loc[1] + pills[2].getHeight() + dp(8));
+            } else if (topIdx == 3) {
                 launch(new Intent(Settings.ACTION_WIFI_SETTINGS));
             } else {
                 launch(new Intent(Settings.ACTION_SETTINGS));
