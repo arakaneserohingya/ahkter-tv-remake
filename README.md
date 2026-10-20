@@ -52,6 +52,17 @@ Everything runs locally on your TV, requires under 40 MB of RAM, and is **100% r
   * Switch rotation modes directly on the TV screen via the **Wallpaper Pill** or from the phone web remote (`✨ Mix Both` | `📁 Local Only` | `🌄 Unsplash Only`).
   * Built-in **Unsplash 4K Explorer** on the web remote and on-screen TV menu with curated collections (*Mountains & Nature*, *Dark OLED & Space*, *Moody Cities*, *Ocean Waves*, *Islamic Heritage*, *Minimalist & Art*).
   * Direct one-tap "Set on TV" downloads over Wi-Fi, interactive pinch/drag framing canvas, and support for pasting any custom Unsplash photo link or ID.
+* **App Tile Management (Long-Press Remote OK)**:
+  * **On the Dock**: Long-press **OK / Center** (or press **Menu**) to show a glass context menu:
+    * `▶ Open`: Launch the app directly.
+    * `📌 Remove from dock`: Instantly remove the app (it safely returns to the grid below).
+    * `↔ Reorder…`: Interactive reordering menu (`Move Left`, `Move Right`, `Move to First`, `Move to Last`, `Done`) plus live remote **D-pad Left / Right** shortcuts to nudge the tile in real time.
+    * `🔄 Replace app…`: Pick any installed app from a list to swap with the selected dock tile.
+    * `🗑 Uninstall`: Prompts native Android TV uninstaller confirmation dialog for non-system apps.
+  * **In the App Grid**: Long-press **OK / Center** on any app tile to:
+    * `▶ Open`: Launch the app.
+    * `📌 Add to dock`: Pin the app to the main home dock row with automatic focus and scroll.
+    * `🗑 Uninstall`: Prompts native Android TV uninstaller confirmation dialog.
 * **Phone Web Remote**:
   * Open `http://<TV-IP>:8080` on any phone browser.
   * Includes a touch trackpad, volume controls, app launcher, wallpaper source mode switcher, Unsplash 4K explorer, and instant keyboard typing into search fields.
@@ -243,8 +254,8 @@ No app needs to be installed on your phone. The TV hosts its own remote control 
 | **Open App** | **OK / Center Button** |
 | **Access Top Menu** | Press **Up** from the dock row (Inputs, AirPlay, Wi-Fi, Settings) |
 | **Browse All Installed Apps** | Press **Down** from the dock row to scroll into the 5-column app grid |
-| **Return to Dock** | Press **Back** or press **Home** |
-| **Rearrange / Change Dock Apps** | **Long-press OK** (or press the **Menu** button) on any dock icon |
+| **App Context Menu (Dock & Grid)** | **Long-press OK** (or press **Menu**) on any app tile to Open, Add/Remove from dock, Reorder, Replace, or Uninstall |
+| **Interactive Dock Reordering** | In the Reorder menu, press **Left / Right** on the remote to nudge the tile in real-time |
 | **View Full Prayer Timetable** | Click the **Time / Prayer text** in the top-left corner |
 | **Screen Cast (Android/Samsung)** | Click the **Miracast (Smart View)** tile in the app grid |
 | **Screen Mirror (Apple/iPhone)** | Click the **AirPlay** pill in the top menu |

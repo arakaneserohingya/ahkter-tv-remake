@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
 import android.net.ConnectivityManager;
@@ -87,9 +89,9 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private WallpaperMenu wallpaperMenu;
 
     // dock editing (long-press OK on a tile): the dock list itself lives in prefs, see AppRepo
-    private static final int MENU_NONE = 0, MENU_DOCK = 1, MENU_GRID = 2, MENU_PICKER = 3;
+    private static final int MENU_NONE = 0, MENU_DOCK = 1, MENU_GRID = 2, MENU_REORDER = 3, MENU_PICKER = 4;
     private int menuMode = MENU_NONE;
-    private int menuDockIdx;
+    private int menuDockIdx, menuGridIdx;
     private List<AppRepo.App> pickerApps;
     private static final long LONG_PRESS_MS = 550;
     private boolean pendingSelect, longFired;
@@ -233,6 +235,18 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent i) {
+            String action = i.getAction();
+            if (Intent.ACTION_PACKAGE_REMOVED.equals(action) && !i.getBooleanExtra(Intent.EXTRA_REPLACING, false)) {
+                Uri data = i.getData();
+                if (data != null) {
+                    String pkg = data.getSchemeSpecificPart();
+                    List<String> pkgs = dockPrefs();
+                    if (pkgs.remove(pkg)) {
+                        saveDock(pkgs);
+                        return;
+                    }
+                }
+            }
             loadApps();
         }
     };
@@ -830,16 +844,31 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         boolean nav = k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN
                 || k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT
                 || k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER
-                || k == KeyEvent.KEYCODE_NUMPAD_ENTER || k == KeyEvent.KEYCODE_BACK;
+                || k == KeyEvent.KEYCODE_NUMPAD_ENTER || k == KeyEvent.KEYCODE_BACK
+                || k == KeyEvent.KEYCODE_MENU;
         if (!nav) return super.dispatchKeyEvent(e);
+
+        if (k == KeyEvent.KEYCODE_MENU && (zone == Zone.DOCK || zone == Zone.GRID)
+                && !inputs.isOpen() && !(wallpaperMenu != null && wallpaperMenu.isOpen()) && !dockMenu.isOpen()) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
+                openTileMenu();
+            }
+            return true;
+        }
 
         boolean select = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER
                 || k == KeyEvent.KEYCODE_NUMPAD_ENTER;
 
         // On a dock/grid tile, OK launches on release; holding OK opens the tile's edit menu.
-        if (select && !inputs.isOpen() && !dockMenu.isOpen()
+        if (select && !inputs.isOpen() && !(wallpaperMenu != null && wallpaperMenu.isOpen()) && !dockMenu.isOpen()
                 && (zone == Zone.DOCK || zone == Zone.GRID)) {
             if (e.getAction() == KeyEvent.ACTION_DOWN) {
+                if (e.isLongPress() || (e.getFlags() & KeyEvent.FLAG_LONG_PRESS) != 0
+                        || (e.getRepeatCount() > 0 && e.getEventTime() - e.getDownTime() >= LONG_PRESS_MS)) {
+                    main.removeCallbacks(longPress);
+                    longPress.run();
+                    return true;
+                }
                 if (e.getRepeatCount() == 0) {
                     pendingSelect = true;
                     longFired = false;
@@ -885,14 +914,27 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         if (dockMenu.isOpen()) {
             if (k == KeyEvent.KEYCODE_DPAD_UP) dockMenu.move(-1);
             else if (k == KeyEvent.KEYCODE_DPAD_DOWN) dockMenu.move(1);
-            else if (select) {
+            else if (menuMode == MENU_REORDER && k == KeyEvent.KEYCODE_DPAD_LEFT) {
+                reorderMove(-1);
+            } else if (menuMode == MENU_REORDER && k == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                reorderMove(1);
+            } else if (select) {
                 // repeats of the held OK that opened this menu must not close it again
                 if (e.getRepeatCount() == 0) {
                     int choice = dockMenu.selectedIndex();
-                    dockMenu.close();
                     onDockMenuChoice(choice);
                 }
-            } else dockMenu.close();   // back, left, right
+            } else if (k == KeyEvent.KEYCODE_BACK) {
+                if (menuMode == MENU_REORDER || menuMode == MENU_PICKER) {
+                    openTileMenu();
+                } else {
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                }
+            } else {
+                dockMenu.close();
+                menuMode = MENU_NONE;
+            }
             return true;
         }
 
@@ -1014,36 +1056,130 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     }
 
     private void saveDock(List<String> pkgs) {
+        saveDock(pkgs, true);
+    }
+
+    private void saveDock(List<String> pkgs, boolean reloadApps) {
         StringBuilder sb = new StringBuilder();
         for (String p : pkgs) {
             if (sb.length() > 0) sb.append(',');
             sb.append(p);
         }
         prefs.edit().putString("dock_pkgs", sb.toString()).apply();
-        loadApps();
+        if (reloadApps) loadApps();
     }
 
     private void openTileMenu() {
         if (zone == Zone.DOCK && dockIdx < dockAdapter.getItemCount()) {
             menuMode = MENU_DOCK;
             menuDockIdx = dockIdx;
-            int[] an = tileAnchor(280, 4);
-            dockMenu.open(an[0], an[1], 280, Arrays.asList(
-                    "Move left", "Move right", "Replace app…", "Remove from dock"));
+            AppRepo.App app = dockAdapter.apps.get(dockIdx);
+            int[] an = tileAnchor(280, 5, true);
+            dockMenu.open(an[0], an[1], 280, app.label, Arrays.asList(
+                    "▶  Open",
+                    "📌  Remove from dock",
+                    "↔  Reorder…",
+                    "🔄  Replace app…",
+                    "🗑  Uninstall"
+            ), 0);
         } else if (zone == Zone.GRID && gridIdx < gridAdapter.getItemCount()) {
             menuMode = MENU_GRID;
-            int[] an = tileAnchor(280, 1);
-            dockMenu.open(an[0], an[1], 280, Arrays.asList("Add to dock"));
+            menuGridIdx = gridIdx;
+            AppRepo.App app = gridAdapter.apps.get(gridIdx);
+            int[] an = tileAnchor(280, 3, true);
+            dockMenu.open(an[0], an[1], 280, app.label, Arrays.asList(
+                    "▶  Open",
+                    "📌  Add to dock",
+                    "🗑  Uninstall"
+            ), 0);
+        }
+    }
+
+    private void openReorderMenu() {
+        if (menuDockIdx < 0 || menuDockIdx >= dockAdapter.getItemCount()) return;
+        menuMode = MENU_REORDER;
+        AppRepo.App app = dockAdapter.apps.get(menuDockIdx);
+        int[] an = tileAnchor(280, 5, true);
+        dockMenu.open(an[0], an[1], 280, "Reorder • " + app.label, Arrays.asList(
+                "←  Move Left",
+                "→  Move Right",
+                "⇤  Move to First",
+                "⇥  Move to Last",
+                "✓  Done"
+        ), 0);
+    }
+
+    private void reorderMove(int delta) {
+        List<String> pkgs = dockPrefs();
+        if (menuDockIdx < 0 || menuDockIdx >= pkgs.size()) return;
+        int target = menuDockIdx + delta;
+        if (target < 0 || target >= pkgs.size()) return;
+        Collections.swap(pkgs, menuDockIdx, target);
+        if (menuDockIdx < dockAdapter.apps.size() && target < dockAdapter.apps.size()) {
+            Collections.swap(dockAdapter.apps, menuDockIdx, target);
+            dockAdapter.notifyItemMoved(menuDockIdx, target);
+        }
+        dockIdx = target;
+        menuDockIdx = target;
+        saveDock(pkgs, false);
+        dockRv.post(() -> {
+            applyFocus(false);
+            openReorderMenu();
+        });
+    }
+
+    private void reorderMoveTo(int target) {
+        List<String> pkgs = dockPrefs();
+        if (menuDockIdx < 0 || menuDockIdx >= pkgs.size()) return;
+        if (target < 0 || target >= pkgs.size() || target == menuDockIdx) return;
+        String pkg = pkgs.remove(menuDockIdx);
+        pkgs.add(target, pkg);
+        if (menuDockIdx < dockAdapter.apps.size() && target < dockAdapter.apps.size()) {
+            AppRepo.App a = dockAdapter.apps.remove(menuDockIdx);
+            dockAdapter.apps.add(target, a);
+            dockAdapter.notifyItemMoved(menuDockIdx, target);
+        }
+        dockIdx = target;
+        menuDockIdx = target;
+        saveDock(pkgs, false);
+        dockRv.post(() -> {
+            applyFocus(false);
+            openReorderMenu();
+        });
+    }
+
+    private void requestUninstall(AppRepo.App app) {
+        if (app == null) return;
+        if (getPackageName().equals(app.pkg)) {
+            Toast.makeText(this, "Cannot uninstall home launcher", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            ApplicationInfo ai = getPackageManager().getApplicationInfo(app.pkg, 0);
+            if ((ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                Toast.makeText(this, app.label + " is a system app and cannot be uninstalled", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_DELETE);
+            intent.setData(Uri.parse("package:" + app.pkg));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to uninstall " + app.label, Toast.LENGTH_SHORT).show();
         }
     }
 
     /** Where to pop the menu: under the focused tile, or above it when the screen edge is near. */
-    private int[] tileAnchor(int widthDp, int rows) {
+    private int[] tileAnchor(int widthDp, int rows, boolean hasTitle) {
         RecyclerView rv = zone == Zone.DOCK ? dockRv : gridRv;
         int idx = zone == Zone.DOCK ? dockIdx : gridIdx;
         RecyclerView.ViewHolder vh = rv.findViewHolderForAdapterPosition(idx);
         int pw = dp(widthDp);
-        int ph = Math.min(rows * dp(38) + dp(12), (int) (H * 0.6f));
+        int headerH = hasTitle ? dp(37) : 0;
+        int ph = Math.min(rows * dp(38) + headerH + dp(12), (int) (H * 0.65f));
         int x = side, y = dp(120);
         if (vh != null) {
             int[] loc = new int[2];
@@ -1060,58 +1196,118 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private void onDockMenuChoice(int i) {
         List<String> pkgs = dockPrefs();
         if (menuMode == MENU_DOCK) {
-            if (menuDockIdx < 0 || menuDockIdx >= pkgs.size()) {
+            if (menuDockIdx < 0 || menuDockIdx >= dockAdapter.getItemCount()) {
+                dockMenu.close();
                 menuMode = MENU_NONE;
                 return;
             }
+            AppRepo.App app = dockAdapter.apps.get(menuDockIdx);
             switch (i) {
-                case 0:   // move left
-                    if (menuDockIdx > 0) {
-                        Collections.swap(pkgs, menuDockIdx, menuDockIdx - 1);
-                        dockIdx = menuDockIdx - 1;
+                case 0: // Open
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    launch(AppRepo.launchIntent(getPackageManager(), app));
+                    break;
+                case 1: // Remove from dock
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    if (menuDockIdx < pkgs.size()) {
+                        pkgs.remove(menuDockIdx);
                         saveDock(pkgs);
+                        dockIdx = Math.max(0, Math.min(menuDockIdx, pkgs.size() - 1));
+                        applyFocus(true);
+                        Toast.makeText(this, app.label + " removed from dock", Toast.LENGTH_SHORT).show();
                     }
                     break;
-                case 1:   // move right
-                    if (menuDockIdx < pkgs.size() - 1) {
-                        Collections.swap(pkgs, menuDockIdx, menuDockIdx + 1);
-                        dockIdx = menuDockIdx + 1;
-                        saveDock(pkgs);
-                    }
+                case 2: // Reorder
+                    openReorderMenu();
                     break;
-                case 2:   // replace: pick from the apps not already in the dock (the grid)
+                case 3: // Replace app…
                     pickerApps = new ArrayList<>(gridAdapter.apps);
                     if (!pickerApps.isEmpty()) {
                         List<String> labels = new ArrayList<>();
                         for (AppRepo.App a : pickerApps) labels.add(a.label);
                         menuMode = MENU_PICKER;
-                        int[] an = tileAnchor(300, labels.size());
-                        dockMenu.open(an[0], an[1], 300, labels);
-                        return;
+                        int[] an = tileAnchor(300, labels.size(), true);
+                        dockMenu.open(an[0], an[1], 300, "Replace " + app.label, labels, 0);
+                    } else {
+                        Toast.makeText(this, "No apps available to replace", Toast.LENGTH_SHORT).show();
+                        dockMenu.close();
+                        menuMode = MENU_NONE;
                     }
                     break;
-                case 3:   // remove (the app returns to the grid below)
-                    pkgs.remove(menuDockIdx);
-                    saveDock(pkgs);
+                case 4: // Uninstall
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    requestUninstall(app);
                     break;
                 default:
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
                     break;
             }
         } else if (menuMode == MENU_GRID) {
-            if (gridIdx < gridAdapter.getItemCount()) {
-                String pkg = gridAdapter.apps.get(gridIdx).pkg;
-                if (!pkgs.contains(pkg)) {
-                    pkgs.add(pkg);
-                    saveDock(pkgs);
-                }
+            if (menuGridIdx < 0 || menuGridIdx >= gridAdapter.getItemCount()) {
+                dockMenu.close();
+                menuMode = MENU_NONE;
+                return;
+            }
+            AppRepo.App app = gridAdapter.apps.get(menuGridIdx);
+            switch (i) {
+                case 0: // Open
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    launch(AppRepo.launchIntent(getPackageManager(), app));
+                    break;
+                case 1: // Add to dock
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    if (!pkgs.contains(app.pkg)) {
+                        pkgs.add(app.pkg);
+                        dockIdx = pkgs.size() - 1;
+                        zone = Zone.DOCK;
+                        saveDock(pkgs);
+                        Toast.makeText(this, app.label + " added to dock", Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+                case 2: // Uninstall
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    requestUninstall(app);
+                    break;
+                default:
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    break;
+            }
+        } else if (menuMode == MENU_REORDER) {
+            switch (i) {
+                case 0: // Move Left
+                    reorderMove(-1);
+                    break;
+                case 1: // Move Right
+                    reorderMove(1);
+                    break;
+                case 2: // Move to First
+                    reorderMoveTo(0);
+                    break;
+                case 3: // Move to Last
+                    reorderMoveTo(pkgs.size() - 1);
+                    break;
+                case 4: // Done
+                default:
+                    dockMenu.close();
+                    menuMode = MENU_NONE;
+                    break;
             }
         } else if (menuMode == MENU_PICKER) {
+            dockMenu.close();
             if (pickerApps != null && i >= 0 && i < pickerApps.size() && menuDockIdx < pkgs.size()) {
                 pkgs.set(menuDockIdx, pickerApps.get(i).pkg);
                 saveDock(pkgs);
             }
+            menuMode = MENU_NONE;
         }
-        menuMode = MENU_NONE;
     }
 
     private void launch(Intent i) {
@@ -1129,6 +1325,9 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                 .putInt("dock", dockIdx).putInt("grid", gridIdx).apply();
 
         dockAdapter.setFocused(dockRv, zone == Zone.DOCK ? dockIdx : -1);
+        if (zone == Zone.DOCK && dockIdx >= 0 && dockIdx < dockAdapter.getItemCount()) {
+            dockRv.smoothScrollToPosition(dockIdx);
+        }
         gridAdapter.setFocused(gridRv, zone == Zone.GRID ? gridIdx : -1);
         for (int i = 0; i < PILLS; i++) {
             float a = zone == Zone.TOP && i == topIdx ? 1f : 0.8f;
@@ -1146,7 +1345,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         else content.setTranslationY(-shift);
 
         // dock title + glow follow the dock selection
-        if (dockAdapter.getItemCount() > 0 && dockIdx != lastTitleApp) {
+        if (dockAdapter.getItemCount() > 0 && dockIdx >= 0 && dockIdx < dockAdapter.apps.size() && dockIdx != lastTitleApp) {
             lastTitleApp = dockIdx;
             AppRepo.App a = dockAdapter.apps.get(dockIdx);
             if (animate) {
