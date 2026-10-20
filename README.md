@@ -37,6 +37,7 @@ Everything runs locally on your TV, requires under 40 MB of RAM, and is **100% r
 * **Quick-Access Top Pills**:
   * 🔌 **Inputs**: Switch between HDMI 1, HDMI 2, AV, and TV inputs.
   * 📺 **AirPlay**: Launches "My TV Airplay" to cast screens and music from iPhone, iPad, or Mac.
+  * 🖼️ **Wallpaper**: Opens the TV glass popup menu to switch rotation modes (`✨ Mix Both`, `📁 Local Only`, `🌄 Unsplash Only`), skip to the next wallpaper, delete photos, or 1-click download curated 4K Unsplash photography directly on the TV using the remote.
   * 📶 **Wi-Fi**: Shows current Wi-Fi name (*e.g., Ruby Akhter*); click to open Network Settings.
   * ⚙️ **Settings**: Opens standard Android / Google TV Settings.
 * **Social Media Counters**: Live follower & subscriber badges for YouTube, Instagram, and Facebook.
@@ -48,8 +49,8 @@ Everything runs locally on your TV, requires under 40 MB of RAM, and is **100% r
   * Pressing **Home**, **double-pressing Home**, exiting apps via **Back**, or **turning on the TV** always returns straight to your clean launcher without black recovery screens or errors.
 * **Custom Rotating Wallpapers & Unsplash 4K Integration**:
   * Rotate through **Local user photos**, curated **Unsplash 4K Ultra-HD photography**, or seamlessly **Mix Both**.
-  * Switch rotation modes in real time from the phone remote (`✨ Mix Both` | `📁 Local Only` | `🌄 Unsplash Only`).
-  * Built-in **Unsplash 4K Explorer** with categorized collections (*Mountains & Nature*, *Dark OLED & Space*, *Moody Cities*, *Ocean Waves*, *Islamic Heritage*, *Minimalist & Art*).
+  * Switch rotation modes directly on the TV screen via the **Wallpaper Pill** or from the phone web remote (`✨ Mix Both` | `📁 Local Only` | `🌄 Unsplash Only`).
+  * Built-in **Unsplash 4K Explorer** on the web remote and on-screen TV menu with curated collections (*Mountains & Nature*, *Dark OLED & Space*, *Moody Cities*, *Ocean Waves*, *Islamic Heritage*, *Minimalist & Art*).
   * Direct one-tap "Set on TV" downloads over Wi-Fi, interactive pinch/drag framing canvas, and support for pasting any custom Unsplash photo link or ID.
 * **Phone Web Remote**:
   * Open `http://<TV-IP>:8080` on any phone browser.
