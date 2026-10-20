@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 
 import '../model/channel.dart';
@@ -406,7 +405,7 @@ class _HomeState extends State<Home> {
     return GridView.builder(
       key: ValueKey('grid/$cat'),
       controller: _controllers.putIfAbsent(cat, () => ScrollController()),
-      scrollCacheExtent: ScrollCacheExtent.pixels(rowExtent),
+      cacheExtent: rowExtent,
       addAutomaticKeepAlives: false,
       // one layer for the whole grid instead of one per tile: cheaper to composite on a Mali-450
       addRepaintBoundaries: false,
