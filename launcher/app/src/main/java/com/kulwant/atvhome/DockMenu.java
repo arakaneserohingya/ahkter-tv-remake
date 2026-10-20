@@ -57,14 +57,39 @@ final class DockMenu {
     }
 
     void open(int leftPx, int topPx, int widthDp, List<String> labels) {
+        open(leftPx, topPx, widthDp, null, labels, 0);
+    }
+
+    void open(int leftPx, int topPx, int widthDp, String title, List<String> labels, int initialSel) {
         gen++;
         panel.animate().cancel();
         list.removeAllViews();
         rows.clear();
+
+        int headerH = 0;
+        if (title != null && !title.isEmpty()) {
+            TextView header = Ui.text(c, 600, 13, 0x99FFFFFF);
+            header.setText(title);
+            header.setGravity(Gravity.CENTER_VERTICAL);
+            header.setPadding(Ui.dp(c, 14), Ui.dp(c, 6), Ui.dp(c, 14), Ui.dp(c, 2));
+            header.setSingleLine(true);
+            header.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            list.addView(header, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(c, 26)));
+
+            View divider = new View(c);
+            divider.setBackgroundColor(0x1FFFFFFF);
+            LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(c, 1));
+            dlp.setMargins(Ui.dp(c, 10), Ui.dp(c, 4), Ui.dp(c, 10), Ui.dp(c, 6));
+            list.addView(divider, dlp);
+            headerH = Ui.dp(c, 37);
+        }
+
         for (int i = 0; i < labels.size(); i++) {
             final int idx = i;
             String label = labels.get(i);
-            TextView t = Ui.text(c, 400, 15, 0xFFFFFFFF);
+            TextView t = Ui.text(c, 400, 14, 0xFFFFFFFF);
             t.setText(label);
             t.setGravity(Gravity.CENTER_VERTICAL);
             t.setPadding(Ui.dp(c, 14), 0, Ui.dp(c, 14), 0);
@@ -73,20 +98,19 @@ final class DockMenu {
             t.setOnClickListener(v -> {
                 sel = idx;
                 paint();
-                close();
                 if (listener != null) listener.onChoice(idx);
             });
             list.addView(t, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(c, 38)));
             rows.add(t);
         }
-        int maxH = (int) (c.getResources().getDisplayMetrics().heightPixels * 0.6f);
-        int h = Math.min(labels.size() * Ui.dp(c, 38) + Ui.dp(c, 12), maxH);
+        int maxH = (int) (c.getResources().getDisplayMetrics().heightPixels * 0.65f);
+        int h = Math.min(labels.size() * Ui.dp(c, 38) + headerH + Ui.dp(c, 12), maxH);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Ui.dp(c, widthDp), h);
         lp.leftMargin = leftPx;
         lp.topMargin = topPx;
         panel.setLayoutParams(lp);
-        sel = 0;
+        sel = Math.max(0, Math.min(initialSel, labels.size() - 1));
         scroll.scrollTo(0, 0);
         paint();
         panel.setVisibility(View.VISIBLE);
