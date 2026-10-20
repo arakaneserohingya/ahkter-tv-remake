@@ -461,11 +461,73 @@
   }
 
   /* Photos Tab */
+  .mode-picker-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin: 12px 0 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .mode-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .mode-picker-header .title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .mode-picker-header .current {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(10, 132, 255, 0.15);
+    padding: 3px 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(10, 132, 255, 0.3);
+  }
+  .mode-seg {
+    display: flex;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    gap: 4px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 8px 4px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .mode-btn:active { transform: scale(0.96); }
+  .mode-btn.active {
+    background: #ffffff;
+    color: #000000;
+    font-weight: 600;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+  }
   .photos-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    margin-top: 14px;
+    margin-top: 10px;
   }
   .photo-tile {
     position: relative;
@@ -479,6 +541,184 @@
   }
   .photo-tile:active { transform: scale(0.95); }
   .photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 4px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .photo-badge.unsplash {
+    background: rgba(0, 0, 0, 0.75);
+    color: #64d2ff;
+    border: 1px solid rgba(100, 210, 255, 0.4);
+  }
+  .photo-badge.local {
+    background: rgba(0, 0, 0, 0.75);
+    color: #30d158;
+    border: 1px solid rgba(48, 209, 88, 0.4);
+  }
+
+  /* Unsplash Explorer */
+  .unsplash-section {
+    margin-top: 28px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+  .unsplash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .badge-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(10, 132, 255, 0.2);
+    color: #64d2ff;
+    border: 1px solid rgba(10, 132, 255, 0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .unsplash-search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .unsplash-search-box input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .unsplash-search-box input:focus {
+    border-color: var(--accent);
+  }
+  .unsplash-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    margin: 0 -4px 10px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .unsplash-chips::-webkit-scrollbar { display: none; }
+  .chip {
+    padding: 7px 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .chip:active { transform: scale(0.95); }
+  .chip.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 2px 10px var(--accent-glow);
+  }
+  .unsplash-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .unsplash-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .unsplash-card:hover {
+    border-color: var(--border-bright);
+  }
+  .unsplash-thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #000;
+    overflow: hidden;
+  }
+  .unsplash-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+  }
+  .unsplash-card:active .unsplash-thumb img {
+    transform: scale(1.04);
+  }
+  .unsplash-meta {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .unsplash-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .unsplash-by {
+    font-size: 11px;
+    color: var(--text-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .unsplash-actions {
+    display: flex;
+    gap: 6px;
+    padding: 0 10px 10px;
+  }
+  .unsplash-act-btn {
+    flex: 1;
+    padding: 6px 0;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .unsplash-act-btn:active { transform: scale(0.95); }
+  .unsplash-act-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
 
   /* Siri Shortcuts Tab */
   .card-box {
@@ -798,15 +1038,73 @@
 
   <!-- Photos Tab -->
   <section data-tab="photos" class="hidden">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 4px 12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 4px 6px">
       <div>
         <h2 style="font-size:20px;margin:0 0 4px">Wallpapers</h2>
-        <p style="color:var(--text-dim);font-size:13px;margin:0">Family photos rotating on your TV home screen.</p>
+        <p style="color:var(--text-dim);font-size:13px;margin:0">Active rotation on your TV home screen.</p>
       </div>
-      <button class="btn-primary" id="addPhotos" style="width:auto;padding:10px 18px;margin:0;font-size:14px">+ Add</button>
+      <button class="btn-primary" id="addPhotos" style="width:auto;padding:10px 18px;margin:0;font-size:14px">+ Upload</button>
     </div>
+
+    <!-- Wallpaper Source Mode Selector -->
+    <div class="mode-picker-card">
+      <div class="mode-picker-header">
+        <span class="title">Active Source Mode</span>
+        <span class="current" id="activeModeLabel">Mix Both</span>
+      </div>
+      <div class="mode-seg">
+        <button class="mode-btn active" data-mode="both" id="modeBoth">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <span>Mix Both</span>
+        </button>
+        <button class="mode-btn" data-mode="local" id="modeLocal">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>Local Only</span>
+        </button>
+        <button class="mode-btn" data-mode="unsplash" id="modeUnsplash">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
+          <span>Unsplash Only</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 4px 4px">
+      <h3 style="font-size:15px;font-weight:600;margin:0;color:var(--text)">TV Gallery</h3>
+      <span id="photoCount" style="font-size:12px;color:var(--text-dim)">0 / 60</span>
+    </div>
+
     <input type="file" id="file" accept="image/*" multiple class="hidden">
     <div class="photos-grid" id="photos"></div>
+
+    <!-- Explore Unsplash 4K Wallpapers -->
+    <div class="unsplash-section">
+      <div class="unsplash-header">
+        <div>
+          <h3 style="font-size:17px;margin:0 0 4px;display:flex;align-items:center;gap:6px">
+            <span>Unsplash 4K Wallpapers</span>
+            <span class="badge-pill">Free Ultra-HD</span>
+          </h3>
+          <p style="color:var(--text-dim);font-size:13px;margin:0">Browse curated 4K photography or paste any link.</p>
+        </div>
+      </div>
+
+      <div class="unsplash-search-box">
+        <input type="text" id="unsplashInput" placeholder="Paste Unsplash URL, photo ID or image link..." autocomplete="off">
+        <button id="unsplashAddBtn" class="btn-primary" style="width:auto;padding:10px 14px;margin:0;font-size:13px;white-space:nowrap">Add to TV</button>
+      </div>
+
+      <div class="unsplash-chips" id="unsplashChips">
+        <button class="chip active" data-cat="all">✨ Curated 4K</button>
+        <button class="chip" data-cat="nature">🏔 Mountains & Nature</button>
+        <button class="chip" data-cat="space">🌌 Dark OLED & Space</button>
+        <button class="chip" data-cat="city">🏙 Moody Cities</button>
+        <button class="chip" data-cat="ocean">🌊 Ocean & Waves</button>
+        <button class="chip" data-cat="heritage">🕌 Islamic Heritage</button>
+        <button class="chip" data-cat="minimal">🎨 Minimalist & Art</button>
+      </div>
+
+      <div class="unsplash-grid" id="unsplashGrid"></div>
+    </div>
   </section>
 
   <!-- Siri & Shortcuts Tab -->
@@ -1040,7 +1338,8 @@ async function load() {
     apps.appendChild(b);
   });
 
-  renderPhotos(s.photos);
+  updateModeUI(s.wallpaperMode || "both");
+  renderPhotos(s.photos, s.maxPhotos || 60);
 
   // Siri shortcuts list
   const base = location.origin;
@@ -1212,23 +1511,64 @@ function copy(text) {
   else prompt("Copy this link:", text);
 }
 
-// ------------------------------------------------------------ Photo Wallpapers
+// ------------------------------------------------------------ Photo Wallpapers & Unsplash
 let photoVersion = Date.now();
-function renderPhotos(list) {
+let currentWallpaperMode = "both";
+
+function updateModeUI(mode) {
+  currentWallpaperMode = mode;
+  const labels = { both: "Mix Both", local: "Local Only", unsplash: "Unsplash Only" };
+  const labelEl = $("activeModeLabel");
+  if (labelEl) labelEl.textContent = labels[mode] || mode;
+  ["both", "local", "unsplash"].forEach((m) => {
+    const btn = $("mode" + m.charAt(0).toUpperCase() + m.slice(1));
+    if (btn) btn.classList.toggle("active", m === mode);
+  });
+}
+
+async function setWallpaperMode(mode) {
+  vibrate(15);
+  updateModeUI(mode);
+  const r = await api("/api/wallpaper/mode", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode })
+  });
+  if (r.ok) {
+    const labels = { both: "✨ Mix Both (Local + Unsplash)", local: "📁 Local Wallpapers Only", unsplash: "🌄 Unsplash 4K Only" };
+    toast("TV Mode: " + (labels[mode] || mode));
+    load();
+  } else {
+    toast("Mode update failed: " + (r.error || "error"));
+  }
+}
+
+if ($("modeBoth")) $("modeBoth").onclick = () => setWallpaperMode("both");
+if ($("modeLocal")) $("modeLocal").onclick = () => setWallpaperMode("local");
+if ($("modeUnsplash")) $("modeUnsplash").onclick = () => setWallpaperMode("unsplash");
+
+function renderPhotos(list, maxCount = 60) {
   const box = $("photos");
   box.innerHTML = "";
+  const countEl = $("photoCount");
+  if (countEl) countEl.textContent = (list ? list.length : 0) + " / " + maxCount;
+  if (!list || !list.length) return;
   list.slice().reverse().forEach((p) => {
     const d = document.createElement("div");
     d.className = "photo-tile";
-    d.innerHTML = '<img loading="lazy" alt="">';
+    const isUnsplash = p.type === "unsplash" || p.id.startsWith("unsplash_");
+    const tag = isUnsplash
+      ? '<span class="photo-badge unsplash">🌄 Unsplash</span>'
+      : '<span class="photo-badge local">📁 Local</span>';
+    d.innerHTML = '<img loading="lazy" alt="">' + tag;
     d.querySelector("img").src = withToken("/api/photo?id=" + p.id + "&v=" + photoVersion);
-    d.onclick = () => openSheet(p.id);
+    d.onclick = () => openSheet(p.id, isUnsplash);
     box.appendChild(d);
   });
 }
 
 let sheetId = null;
-function openSheet(id) {
+function openSheet(id, isUnsplash) {
   sheetId = id;
   $("shImg").src = withToken("/api/photo?id=" + id + "&v=" + photoVersion);
   $("sheet").classList.remove("hidden");
@@ -1266,6 +1606,141 @@ $("file").onchange = () => {
   edit(files.map((f) => ({ file: f })));
 };
 
+// ------------------------------------------------------------ Unsplash 4K Library
+const UNSPLASH_PHOTOS = [
+  // Mountains & Nature
+  { id: "1506744038136-46273834b3fb", title: "Yosemite Valley Mist", by: "Bailey Zindel", cat: "nature" },
+  { id: "1464822759023-fed622ff2c3b", title: "Alpine Sunset Peaks", by: "Kalen Emsley", cat: "nature" },
+  { id: "1470071459604-3b5ec3a7fe05", title: "Foggy Pine Forest", by: "Luca Bravo", cat: "nature" },
+  { id: "1519681393784-d120267933ba", title: "Snowy Mountain & Stars", by: "Benjamin Voros", cat: "nature" },
+  { id: "1426604966848-d7adac402bff", title: "Zion Sunbeams", by: "Luca Bravo", cat: "nature" },
+  { id: "1472214103451-9374bd1c798e", title: "Emerald Highland Valley", by: "Robert Lukeman", cat: "nature" },
+
+  // Dark OLED & Space
+  { id: "1419242902214-272b3f66ee7a", title: "Milky Way Galaxy", by: "Vincentiu Solomon", cat: "space" },
+  { id: "1506703719100-a0f3a48c0f86", title: "Stellar Nebula Void", by: "Jeremy Thomas", cat: "space" },
+  { id: "1446776811953-b23d57bd21aa", title: "Earth Horizon Orbit", by: "NASA", cat: "space" },
+  { id: "1451187580459-43490279c0fa", title: "Illuminated Globe At Night", by: "NASA", cat: "space" },
+  { id: "1538370965046-79c0d6907d47", title: "Stargazing at Night", by: "Ryan Hutton", cat: "space" },
+  { id: "1518709268805-4e9042af9f23", title: "Dark Prism Reflections", by: "Guillaume Kurkdjian", cat: "space" },
+
+  // Moody Cities
+  { id: "1509198397868-475647b2a1e5", title: "Tokyo Rain Reflections", by: "Aleksandar Pasaric", cat: "city" },
+  { id: "1514565131-fce0801e5785", title: "Cyberpunk Neon Glow", by: "Liam Simpson", cat: "city" },
+  { id: "1477959858617-67f30bc75b82", title: "Golden Hour Metropolis", by: "Sawyer Bengtson", cat: "city" },
+  { id: "1486406146926-c627a92ad1ab", title: "Steel Glass Architecture", by: "Sean Pollock", cat: "city" },
+
+  // Ocean & Waves
+  { id: "1507525428034-b723cf961d3e", title: "Tropical Maldives Turquoise", by: "Sean Oulashin", cat: "ocean" },
+  { id: "1518837695005-2083093ee35b", title: "Emerald Wave Barrel", by: "Jeremy Bishop", cat: "ocean" },
+  { id: "1505118380757-91f5f5632de0", title: "Pacific Coastline Cliffs", by: "Shifaaz shamheed", cat: "ocean" },
+  { id: "1498855926480-d98e83099315", title: "Crystal Crest Surge", by: "Matt Hardy", cat: "ocean" },
+
+  // Islamic Heritage
+  { id: "1564769625905-50e93615e769", title: "Sheikh Zayed Grand Mosque", by: "Federico Di Dio", cat: "heritage" },
+  { id: "1584551246679-0daf3d275d0f", title: "Grand Marble Colonnade", by: "Rana Sawalha", cat: "heritage" },
+  { id: "1591604129939-f1efa4d9f7fa", title: "Arabesque Mosaic Tiles", by: "Annie Spratt", cat: "heritage" },
+  { id: "1548013146-72479768bada", title: "Taj Mahal Dawn Reflection", by: "Julian Yu", cat: "heritage" },
+  { id: "1570784332176-fdd73da66f03", title: "Golden Crescent Minaret", by: "Sami Abdullah", cat: "heritage" },
+
+  // Minimalist & Art
+  { id: "1507499739999-097706ad8914", title: "Sahara Sand Dunes Curve", by: "Jeremy Bishop", cat: "minimal" },
+  { id: "1534447677768-be436bb09401", title: "Ethereal Aurora Borealis", by: "Tobias Tullius", cat: "minimal" },
+  { id: "1509114397022-ed747cca3f65", title: "Minimal Sunset Gradient", by: "Eberhard Grossgasteiger", cat: "minimal" },
+  { id: "1579546929518-9e396f3cc809", title: "Silky Fluid Rainbow", by: "Alexander Grey", cat: "minimal" }
+];
+
+let activeCategory = "all";
+function renderUnsplashGrid() {
+  const grid = $("unsplashGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  const filtered = activeCategory === "all" ? UNSPLASH_PHOTOS : UNSPLASH_PHOTOS.filter((p) => p.cat === activeCategory);
+  filtered.forEach((p) => {
+    const thumbUrl = "https://images.unsplash.com/photo-" + p.id + "?w=600&q=75&auto=format&fit=crop";
+    const fullUrl = "https://images.unsplash.com/photo-" + p.id + "?w=1920&q=85";
+    const card = document.createElement("div");
+    card.className = "unsplash-card";
+    card.innerHTML = `
+      <div class="unsplash-thumb">
+        <img src="${thumbUrl}" loading="lazy" alt="${p.title}">
+      </div>
+      <div class="unsplash-meta">
+        <span class="unsplash-title">${p.title}</span>
+        <span class="unsplash-by">${p.by}</span>
+      </div>
+      <div class="unsplash-actions">
+        <button class="unsplash-act-btn primary" title="Set on TV">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Set on TV</span>
+        </button>
+        <button class="unsplash-act-btn" title="Frame & Crop">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+          <span>Frame</span>
+        </button>
+      </div>
+    `;
+    const btns = card.querySelectorAll("button");
+    btns[0].onclick = (e) => { e.stopPropagation(); downloadUnsplash(fullUrl, p.title); };
+    btns[1].onclick = (e) => { e.stopPropagation(); frameUnsplash(fullUrl); };
+    grid.appendChild(card);
+  });
+}
+
+async function downloadUnsplash(url, title) {
+  toast("Downloading 4K wallpaper to TV...");
+  vibrate(20);
+  const r = await api("/api/photo/download", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url })
+  });
+  if (r.ok) {
+    toast("✨ " + (title || "Wallpaper") + " added & active on TV!");
+    photoVersion = Date.now();
+    load();
+  } else {
+    toast("Download error: " + (r.error || "Check Wi-Fi"));
+  }
+}
+
+function frameUnsplash(url) {
+  vibrate(15);
+  edit([{ src: url, isUnsplash: true }]);
+}
+
+async function addCustomUnsplash() {
+  const input = $("unsplashInput");
+  const val = input ? input.value.trim() : "";
+  if (!val) return;
+  let targetUrl = val;
+  const m = val.match(/photo-[a-zA-Z0-9_-]+/);
+  if (m) {
+    targetUrl = "https://images.unsplash.com/" + m[0] + "?w=1920&q=80";
+  } else if (!val.startsWith("http://") && !val.startsWith("https://")) {
+    targetUrl = "https://images.unsplash.com/photo-" + val + "?w=1920&q=80";
+  }
+  if (input) input.value = "";
+  await downloadUnsplash(targetUrl, "Custom Wallpaper");
+}
+
+const chips = document.querySelectorAll("#unsplashChips .chip");
+chips.forEach((c) => {
+  c.onclick = () => {
+    chips.forEach((x) => x.classList.remove("active"));
+    c.classList.add("active");
+    activeCategory = c.getAttribute("data-cat");
+    vibrate(15);
+    renderUnsplashGrid();
+  };
+});
+
+if ($("unsplashAddBtn")) $("unsplashAddBtn").onclick = () => addCustomUnsplash();
+if ($("unsplashInput")) $("unsplashInput").onkeydown = (e) => { if (e.key === "Enter") addCustomUnsplash(); };
+
+renderUnsplashGrid();
+
+// ------------------------------------------------------------ Photo Framing Editor
 let queue = [], total = 0, job = null, img = null, zoom = 1, ox = 0, oy = 0;
 function edit(jobs) { queue = jobs; total = jobs.length; next(); }
 const cv = $("cv"), ctx = cv.getContext("2d");
@@ -1278,6 +1753,7 @@ function next() {
   $("edSend").textContent = job.replace ? "Save" : "Send to TV";
   const url = job.file ? URL.createObjectURL(job.file) : job.src;
   const im = new Image();
+  if (!job.file) im.crossOrigin = "anonymous";
   im.onload = () => {
     img = im; zoom = 1; $("zoom").value = 1;
     const s = baseScale() * zoom;
@@ -1360,7 +1836,8 @@ $("edSend").onclick = async () => {
     if (id) {
       r = await post("/api/photo/replace?id=" + id, crop);
     } else {
-      r = await post("/api/photo", crop);
+      const q = job.isUnsplash ? "?unsplash=1" : "";
+      r = await post("/api/photo" + q, crop);
       id = r.id;
     }
     if (r.ok && !job.keepOriginal) await post("/api/photo/original?id=" + id, await original());
