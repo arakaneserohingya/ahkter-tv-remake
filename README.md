@@ -246,7 +246,9 @@ No app needs to be installed on your phone. The TV hosts its own remote control 
    * Press **Right Arrow**, then **OK** on your physical TV remote to approve.
 5. **Install as a Web App on ANY Operating System (PWA)**:
    * **📲 In-App Button**: Tap the **Install (⤓)** icon in the top header or click **"Install App on this Device"** on the pairing screen.
-   * **🤖 On Android (Chrome, Samsung Internet, Edge)**: Tap **Install App** when prompted or tap **⋮ (Menu) → Install app**.
+   * **🤖 On Android (Samsung / Chrome / Edge)**:
+     * In **Chrome**: Tap **⋮ (Three Dots) → Add to Home screen** (or **Create shortcut**). It creates a dedicated launcher tile that opens in full-screen standalone mode without any browser URL bar! *(See FAQ below for the Chrome WebAPK flag trick).*
+     * In **Samsung Internet**: Tap **≡ (Menu) → Add page to → Home screen** for instant 1-tap installation.
    * **🍏 On iPhone & iPad (Safari)**: Tap the **Share** button (⎋ / 📤) → tap **Add to Home Screen (➕)** → tap **Add**.
    * **💻 On Mac (macOS)**:
      * In Chrome or Edge: Click the **Install (⤓)** icon in your address bar to add it to your macOS Applications & Launchpad.
@@ -293,6 +295,20 @@ Long-press **OK / Center** (or press the **Menu** button) on any dock tile or gr
 ---
 
 ## ❓ Frequently Asked Questions & Troubleshooting
+
+### Q: On Android (Samsung / Chrome), why does it say "This app cannot be installed, but can create shortcut"?
+**A:** This is Google Chrome's standard security requirement for local private home networks:
+* **Why this happens**: Google Chrome requires an encrypted **HTTPS (SSL)** certificate or `localhost` to package a full WebAPK. Because your TV hosts the remote directly on your private home Wi-Fi at a local IP address (e.g., `http://192.168.0.146:8080`), it runs over local HTTP.
+* **Does "Create shortcut" work the same?**: **Yes, 100%!** When you tap **"Create shortcut"** (or **"Add to Home screen"**), Chrome adds the TV Remote app icon to your Samsung home screen. Thanks to our standalone PWA manifest and `<meta name="mobile-web-app-capable" content="yes">`, tapping that icon opens a **full-screen, borderless app** without the Chrome URL bar or tabs.
+* **Samsung Galaxy Tip**: If you use the built-in **Samsung Internet** browser, tap the bottom menu (**≡**) → **Add page to** → **Home screen** to install it directly with zero warnings.
+* **Power-User Chrome Trick (Force Native WebAPK Installation)**:
+  1. In Chrome on your phone, navigate to:
+     ```text
+     chrome://flags/#unsafely-treat-insecure-origin-as-secure
+     ```
+  2. In the text box, type your TV's address: `http://<TV-IP>:8080` (for example: `http://192.168.0.146:8080`).
+  3. Toggle the dropdown to **Enabled** and tap **Relaunch**.
+  4. Chrome will now treat your TV as a secure origin and display the native **"Install App"** prompt directly!
 
 ### Q: Why does pressing Home or waking the TV briefly show Google TV?
 **A:** Google TV firmware hardcodes `KEYCODE_HOME` to launch Google's ad launcher. Our built-in **HomeInterceptService** monitors window changes in real time and redirects you back to Akhter & Ruby TV Home within 80 milliseconds.
