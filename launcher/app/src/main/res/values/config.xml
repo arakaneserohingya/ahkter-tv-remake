@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Customised for Akhter's Sharp AQUOS-TVW24C, 2026-10-20. Then run ./build_and_install.sh -->
+<resources>
+    <!-- Dock apps, left to right. Package names; missing or disabled apps are skipped. -->
+    <string-array name="dock_packages">
+        <item>com.google.android.youtube.tv</item>
+        <item>org.smarttube.stable</item>
+        <item>com.netflix.ninja</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.tm.unifitv.tv</item>
+    </string-array>
+
+    <!-- Apps per row, in the dock and in the grid (3 to 6). -->
+    <integer name="columns">5</integer>
+
+    <!-- Apps never shown in the grid. -->
+    <string-array name="hidden_packages">
+        <item>com.google.android.apps.tv.launcherx</item>
+        <item>com.android.tv.settings</item>
+        <item>jp.co.sharp.av.android.asia.cocorovisionlauncher</item>
+    </string-array>
+
+    <!-- Name in the greeting ("Good evening, Ahkter & Ruby"). Leave empty for no name. -->
+    <string name="greeting_name">Akhter &amp; Ruby</string>
+
+    <!-- Follower counters under the top-right buttons, refreshed every 30 minutes while the home
+         screen is open. One pill per entry; add or remove entries freely. -->
+    <!-- YouTube channel handles -->
+    <string-array name="youtube_channels">
+        <item>@akhterhusin_rkb</item>
+        <item>@rubyahkterchth</item>
+    </string-array>
+    <!-- Instagram usernames (instagram.com/<this>) -->
+    <string-array name="instagram_users">
+    </string-array>
+    <!-- Facebook profile and page names (facebook.com/<this>) -->
+    <string-array name="facebook_pages">
+        <item>ahkter.husin</item>
+        <item>RohingyaSongs</item>
+    </string-array>
+
+    <!-- Wallpapers: 1280x720 images named wallpaper_1.jpg, wallpaper_2.jpg, ... in res/drawable-nodpi/.
+         With more than one they fade from one to the next every wallpaper_seconds. false = pitch black. -->
+    <bool name="use_wallpaper">true</bool>
+    <integer name="wallpaper_seconds">30</integer>
+</resources>

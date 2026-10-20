@@ -1,0 +1,32 @@
+# Debloat profile for Xiaomi MiTV-AXSO0 (Android TV 9, India firmware).
+# Tested on one TV. Keeps: all streaming apps, Chromecast, Miracast/Mi screen share, firmware updates,
+# USB media apps, TV inputs, remote/Bluetooth, keyboard, Play Store/Services.
+# Disables the Google Assistant too: delete those two lines if you use voice search.
+# The last two lines disable the stock launcher: only apply them after installing the new launcher.
+# telemetry / analytics
+com.miui.tv.analytics
+com.xiaomi.statistic
+com.google.android.feedback
+com.google.android.tv.bugreportsender
+com.xiaomi.android.TV.audio
+# manufacturer content / ads / recommendations
+com.mitv.tvhome.atv
+com.xm.webcontent
+com.xiaomi.mitv.handbook
+com.google.android.leanbacklauncher
+com.google.android.leanbacklauncher.recommendations
+com.google.android.play.games
+# background services / cleaners
+com.xiaomi.mitv.tvmanager
+com.android.printspooler
+com.android.camera2
+# preloaded apps not used
+com.google.android.videos
+com.google.android.youtube.tvmusic
+com.google.android.marvin.talkback
+# voice assistant (not used)
+com.google.android.katniss
+com.google.android.speech.pumpkin
+# stock launcher (replaced by com.kulwant.atvhome)
+com.google.android.tvlauncher
+com.google.android.tvrecommendations

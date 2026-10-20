@@ -1,0 +1,28 @@
+# Python environment
+.venv/
+__pycache__/
+
+# Your TV: address and backups contain device details
+.tv-ip
+backup/
+shots/
+
+# Build output
+*.apk
+launcher/local.properties
+launcher/.gradle/
+launcher/app/build/
+launcher/build/
+apps/live-tv/build/
+apps/live-tv/.dart_tool/
+apps/live-tv/android/local.properties
+apps/live-tv/android/.gradle/
+apps/live-tv/android/.kotlin/
+apps/live-tv/android/build/
+
+.DS_Store
+.idea/
+*.iml
+
+# Your own wallpapers (personal photos): put them in launcher/app/src/main/res/drawable-nodpi/
+launcher/app/src/main/res/drawable-nodpi/wallpaper*
