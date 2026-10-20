@@ -1251,7 +1251,10 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let token = null;
-try { token = localStorage.getItem("tvtoken"); } catch (e) {}
+try {
+  token = new URLSearchParams(location.search).get("token") || localStorage.getItem("tvtoken");
+  if (token) localStorage.setItem("tvtoken", token);
+} catch (e) {}
 
 // Haptic feedback helper
 function vibrate(ms = 12) {
@@ -1429,7 +1432,7 @@ async function act(path, label) {
 
 // ------------------------------------------------------------ Navigation Tabs
 let tab = "remote";
-try { tab = localStorage.getItem("tvtab") || "remote"; } catch (e) {}
+try { tab = new URLSearchParams(location.search).get("tab") || localStorage.getItem("tvtab") || "remote"; } catch (e) {}
 function go(t) {
   tab = t;
   try { localStorage.setItem("tvtab", t); } catch (e) {}
