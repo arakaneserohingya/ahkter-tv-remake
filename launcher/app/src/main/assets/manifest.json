@@ -6,6 +6,8 @@
   "id": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "prefer_related_applications": false,
   "background_color": "#0a0a0c",
   "theme_color": "#0a0a0c",
   "orientation": "portrait",

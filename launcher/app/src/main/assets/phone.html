@@ -1997,10 +1997,11 @@ async function triggerInstall() {
     `;
     doBtn.style.display = "none";
   } else {
-    $("installDesc").textContent = "Install on your Mac, Windows, Linux, or Android device.";
+    $("installDesc").textContent = "Add to your home screen or desktop for a fast, full-screen remote experience.";
     steps.innerHTML = `
+      • <b>Android / Chrome (Samsung)</b>: Tap <b>⋮ (Three Dots)</b> → <b>Add to Home screen</b> (or <b>Create shortcut</b>). It creates a dedicated icon that opens in full-screen standalone mode with no address bar.<br>
+      • <b>Samsung Internet Browser</b>: Tap <b>≡ (Menu)</b> → <b>Add page to</b> → <b>Home screen</b>.<br>
       • <b>Chrome / Edge (Mac, PC, Linux)</b>: Click the <b>Install (⤓)</b> icon in your address bar.<br>
-      • <b>Android / Chrome</b>: Tap <b>⋮ (Three Dots)</b> → <b>Install app</b> or <b>Add to Home screen</b>.<br>
       • <b>Safari on Mac</b>: File → <b>Add to Dock…</b>
     `;
     doBtn.style.display = "none";
