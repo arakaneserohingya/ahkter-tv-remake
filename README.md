@@ -244,10 +244,15 @@ No app needs to be installed on your phone. The TV hosts its own remote control 
 3. Tap the button: **"Pair with TV"**.
 4. A prompt will appear on your TV screen: *"Allow this phone to control the TV?"*
    * Press **Right Arrow**, then **OK** on your physical TV remote to approve.
-5. **Add to Phone Home Screen**:
-   * **On iPhone**: Tap the Share icon (square with arrow) → tap **Add to Home Screen**.
-   * **On Android**: Tap the three dots menu (⋮) → tap **Install App** or **Add to Home Screen**.
-6. You now have an ad-free, full-screen touch remote with trackpad, live keyboard typing, and photo uploader!
+5. **Install as a Web App on ANY Operating System (PWA)**:
+   * **📲 In-App Button**: Tap the **Install (⤓)** icon in the top header or click **"Install App on this Device"** on the pairing screen.
+   * **🤖 On Android (Chrome, Samsung Internet, Edge)**: Tap **Install App** when prompted or tap **⋮ (Menu) → Install app**.
+   * **🍏 On iPhone & iPad (Safari)**: Tap the **Share** button (⎋ / 📤) → tap **Add to Home Screen (➕)** → tap **Add**.
+   * **💻 On Mac (macOS)**:
+     * In Chrome or Edge: Click the **Install (⤓)** icon in your address bar to add it to your macOS Applications & Launchpad.
+     * In Safari: Choose **File → Add to Dock…** to run it as a native Mac app.
+   * **🪟 On Windows & Linux (PC)**: Click the **Install (⤓)** button in Chrome or Edge to pin the remote to your Taskbar or Start Menu.
+6. You now have an ad-free, full-screen standalone TV remote with fluid trackpad, live search keyboard, TV input switcher, and 4K photo uploader that opens instantly on any phone, tablet, or computer!
 
 ### 📱 Phone Remote Tabs & Features
 

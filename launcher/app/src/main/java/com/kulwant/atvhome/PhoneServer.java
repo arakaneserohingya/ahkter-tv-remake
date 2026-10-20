@@ -6,8 +6,10 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -131,9 +133,11 @@ final class PhoneServer {
         String ip = "";
     }
 
-    /** Routes anyone on the network may call (pairing, the page itself); their bodies are tiny. */
+    /** Routes anyone on the network may call (pairing, the page itself, PWA assets); their bodies are tiny. */
     private static final Set<String> OPEN = new HashSet<>(java.util.Arrays.asList(
-            "/", "/index.html", "/icon.png", "/favicon.ico", "/api/pair", "/api/pair/status"));
+            "/", "/index.html", "/manifest.json", "/manifest.webmanifest", "/sw.js",
+            "/icon.png", "/icon-192.png", "/icon-512.png", "/favicon.ico",
+            "/api/pair", "/api/pair/status"));
     private static final int MAX_OPEN_BODY = 4096;
 
     private void handle(Socket s) {
@@ -258,9 +262,22 @@ final class PhoneServer {
             case "/index.html":
                 send(out, 200, "text/html; charset=utf-8", asset("phone.html"), null);
                 return;
+            case "/manifest.json":
+            case "/manifest.webmanifest":
+                send(out, 200, "application/manifest+json; charset=utf-8", asset("manifest.json"), "max-age=3600");
+                return;
+            case "/sw.js":
+                send(out, 200, "application/javascript; charset=utf-8", asset("sw.js"), "no-cache");
+                return;
             case "/icon.png":
             case "/favicon.ico":
-                send(out, 200, "image/png", icon(), "max-age=86400");
+                send(out, 200, "image/png", icon(180), "max-age=86400");
+                return;
+            case "/icon-192.png":
+                send(out, 200, "image/png", icon(192), "max-age=86400");
+                return;
+            case "/icon-512.png":
+                send(out, 200, "image/png", icon(512), "max-age=86400");
                 return;
             case "/api/pair":
                 json(out, 200, startPairing(r));
@@ -646,24 +663,42 @@ final class PhoneServer {
         return bo.toByteArray();
     }
 
-    /** Home-screen icon for "Add to Home Screen" on the iPhone: a white TV on black. */
-    private static byte[] icon() {
-        int s = 180;
+    private static final Map<Integer, byte[]> ICON_CACHE = new HashMap<>();
+
+    /** Home-screen & PWA app icon: modern TV silhouette with Apple red status indicator on dark gradient. */
+    private static synchronized byte[] icon(int s) {
+        byte[] cached = ICON_CACHE.get(s);
+        if (cached != null) return cached;
         Bitmap b = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(b);
-        cv.drawColor(Color.BLACK);
+        float sc = s / 180f;
+
+        Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bg.setShader(new LinearGradient(0, 0, 0, s, 0xFF1C1C22, 0xFF0A0A0D, Shader.TileMode.CLAMP));
+        cv.drawRect(0, 0, s, s, bg);
+
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(Color.WHITE);
         p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(10);
-        cv.drawRoundRect(new RectF(34, 46, 146, 116), 14, 14, p);
+        p.setStrokeWidth(10 * sc);
         p.setStrokeCap(Paint.Cap.ROUND);
-        cv.drawLine(70, 140, 110, 140, p);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        cv.drawRoundRect(new RectF(34 * sc, 44 * sc, 146 * sc, 118 * sc), 14 * sc, 14 * sc, p);
+
+        // TV Stand
+        cv.drawLine(70 * sc, 140 * sc, 110 * sc, 140 * sc, p);
+        p.setStrokeWidth(8 * sc);
+        cv.drawLine(90 * sc, 118 * sc, 90 * sc, 140 * sc, p);
+
+        // Apple Red accent status indicator dot
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFFFF3B30);
-        cv.drawCircle(90, 81, 12, p);
+        cv.drawCircle(90 * sc, 81 * sc, 12 * sc, p);
+
         ByteArrayOutputStream bo = new ByteArrayOutputStream();
         b.compress(Bitmap.CompressFormat.PNG, 100, bo);
-        return bo.toByteArray();
+        byte[] res = bo.toByteArray();
+        ICON_CACHE.put(s, res);
+        return res;
     }
 }
