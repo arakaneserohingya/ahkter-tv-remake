@@ -11,6 +11,7 @@ import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -19,8 +20,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.format.DateFormat;
+import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
@@ -29,6 +32,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -50,7 +54,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
 
     private enum Zone { TOP, DOCK, GRID }
 
-    private static final int PILLS = 3;
+    private static final int PILLS = 4;
     /** apps per row, dock and grid (config.xml: columns) */
     private int COLS;
 
@@ -62,7 +66,8 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private int W, H, side, bandTop, gridTop, rowH;
 
     private FrameLayout root, content;
-    private TextView greeting, clock, date, dockTitle, wifiText;
+    private TextView greeting, clock, date, dockTitle, wifiText, hijriText, prayerText;
+    private String prayerSummary;
     private LinearLayout pillRow;
     // follower counters under the pills: any number of YouTube / Instagram / Facebook accounts
     private final List<String> socialKinds = new ArrayList<>();   // "yt", "ig" or "fb", one per pill
@@ -148,6 +153,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
 
         Wallpapers.setListener(this);
         startForegroundService(new Intent(this, PhoneService.class));
+        LiveTvInstaller.checkAndInstall(this);
     }
 
     @Override
@@ -155,6 +161,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         super.onResume();
         updateClock();
         updateWifi();
+        updatePrayerTimes();
         if (inputs.isOpen()) inputs.close();
         scheduleMinute();
         scheduleWallpaper();
@@ -214,8 +221,10 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         public void onReceive(Context c, Intent i) {
             String a = i.getAction();
             if (ConnectivityManager.CONNECTIVITY_ACTION.equals(a)
-                    || WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(a)) updateWifi();
-            else updateClock();
+                    || WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(a)) {
+                updateWifi();
+                updatePrayerTimes();
+            } else updateClock();
         }
     };
 
@@ -333,11 +342,14 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         // greeting, clock, date
         LinearLayout tl = new LinearLayout(this);
         tl.setOrientation(LinearLayout.VERTICAL);
+        tl.setClipChildren(false);
+        tl.setClipToPadding(false);
         greeting = Ui.text(this, 400, 16, 0x99FFFFFF);
         clock = Ui.text(this, 150, 78, 0xFFFFFFFF);
         clock.setLetterSpacing(-0.02f);
         date = Ui.text(this, 300, 17, 0x99FFFFFF);
-        tl.addView(greeting);
+        LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-2, -2);
+        tl.addView(greeting, glp);
         LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-2, -2);
         clp.topMargin = dp(4);
         clp.leftMargin = -dp(3);
@@ -345,19 +357,44 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(-2, -2);
         dlp.topMargin = dp(6);
         tl.addView(date, dlp);
-        content.addView(tl, at(W / 2, -2, side, dp(34)));
+        hijriText = Ui.text(this, 300, 14, 0x80FFFFFF);
+        LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-2, -2);
+        hlp.topMargin = dp(4);
+        tl.addView(hijriText, hlp);
+        prayerText = Ui.text(this, 400, 15, 0xFFFFFFFF);
+        prayerText.setSingleLine(true);
+        LinearLayout.LayoutParams prlp = new LinearLayout.LayoutParams(-2, -2);
+        prlp.topMargin = dp(4);
+        tl.addView(prayerText, prlp);
+        tl.setOnClickListener(v -> {
+            if (prayerSummary != null && !prayerSummary.isEmpty()) {
+                Toast.makeText(this, prayerSummary, Toast.LENGTH_LONG).show();
+            } else {
+                zone = Zone.DOCK;
+                applyFocus(true);
+            }
+        });
+        content.addView(tl, at(-2, -2, side, dp(34)));
 
-        // pills: Inputs, Wi-Fi, Settings
+        // pills: Inputs, AirPlay, Wi-Fi, Settings
         pillRow = new LinearLayout(this);
         pillRow.setOrientation(LinearLayout.HORIZONTAL);
         pills[0] = pill(R.drawable.ic_input, "Inputs");
-        pills[1] = pill(R.drawable.ic_wifi, "Wi-Fi");
-        wifiText = (TextView) ((ViewGroup) pills[1]).getChildAt(1);
-        pills[2] = pill(R.drawable.ic_settings, null);
+        pills[1] = pill(R.drawable.ic_airplay, "AirPlay");
+        pills[2] = pill(R.drawable.ic_wifi, "Wi-Fi");
+        wifiText = (TextView) ((ViewGroup) pills[2]).getChildAt(1);
+        pills[3] = pill(R.drawable.ic_settings, null);
         for (int i = 0; i < PILLS; i++) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(36));
             if (i > 0) lp.leftMargin = dp(10);
             pillRow.addView(pills[i], lp);
+            final int pillIdx = i;
+            pills[i].setOnClickListener(v -> {
+                zone = Zone.TOP;
+                topIdx = pillIdx;
+                applyFocus(true);
+                activate();
+            });
         }
         FrameLayout.LayoutParams plp = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.END);
         plp.topMargin = dp(36);
@@ -383,6 +420,25 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
 
         // dock
         dockAdapter = new TileAdapter(dockCell, dockCardW, dockCardH, 0, false);
+        dockAdapter.setOnTileClickListener(new TileAdapter.OnTileClickListener() {
+            @Override
+            public void onTileClick(int pos) {
+                if (pos < 0 || pos >= dockAdapter.getItemCount()) return;
+                zone = Zone.DOCK;
+                dockIdx = pos;
+                applyFocus(true);
+                activate();
+            }
+
+            @Override
+            public void onTileLongClick(int pos) {
+                if (pos < 0 || pos >= dockAdapter.getItemCount()) return;
+                zone = Zone.DOCK;
+                dockIdx = pos;
+                applyFocus(true);
+                openTileMenu();
+            }
+        });
         dockRv = recycler(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false), dockAdapter);
         content.addView(dockRv, at(dockCell * COLS, dockCardH, side + dp(28) - (dockCell - dockCardW) / 2,
                 bandTop + (bandH - dockCardH) / 2));
@@ -391,15 +447,78 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         TextView appsHeader = Ui.text(this, 500, 15, 0x80FFFFFF);
         appsHeader.setText("Apps");
         appsHeader.setLetterSpacing(0.04f);
+        appsHeader.setOnClickListener(v -> {
+            zone = Zone.GRID;
+            if (gridAdapter.getItemCount() > 0) gridIdx = 0;
+            applyFocus(true);
+        });
         content.addView(appsHeader, at(-2, -2, side + dp(2), gridTop - dp(30)));
         gridAdapter = new TileAdapter(gridCell, gridCardW, gridCardH, rowH - gridCardH, true);
+        gridAdapter.setOnTileClickListener(new TileAdapter.OnTileClickListener() {
+            @Override
+            public void onTileClick(int pos) {
+                if (pos < 0 || pos >= gridAdapter.getItemCount()) return;
+                zone = Zone.GRID;
+                gridIdx = pos;
+                applyFocus(true);
+                activate();
+            }
+
+            @Override
+            public void onTileLongClick(int pos) {
+                if (pos < 0 || pos >= gridAdapter.getItemCount()) return;
+                zone = Zone.GRID;
+                gridIdx = pos;
+                applyFocus(true);
+                openTileMenu();
+            }
+        });
         gridRv = recycler(new GridLayoutManager(this, COLS), gridAdapter);
         content.addView(gridRv, at(gridCell * COLS, rowH, side - (gridCell - gridCardW) / 2, gridTop));
 
         inputs = new InputsMenu(this);
+        inputs.setOnSelectListener(this::launch);
         root.addView(inputs.panel);
         dockMenu = new DockMenu(this);
+        dockMenu.setOnChoiceListener(this::onDockMenuChoice);
         root.addView(dockMenu.panel);
+
+        root.setOnGenericMotionListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_SCROLL) {
+                float vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+                if (vScroll < -0.2f) {
+                    down();
+                    return true;
+                } else if (vScroll > 0.2f) {
+                    up();
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        GestureDetector gd = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                if (inputs.isOpen()) { inputs.close(); return true; }
+                if (dockMenu.isOpen()) { dockMenu.close(); return true; }
+                return false;
+            }
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
+                if (e1 == null || e2 == null) return false;
+                float dy = e2.getY() - e1.getY();
+                if (dy < -60) {
+                    down();
+                    return true;
+                } else if (dy > 60) {
+                    up();
+                    return true;
+                }
+                return false;
+            }
+        });
+        root.setOnTouchListener((v, event) -> gd.onTouchEvent(event));
     }
 
     private FrameLayout.LayoutParams at(int w, int h, int x, int y) {
@@ -457,6 +576,35 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         boolean h24 = DateFormat.is24HourFormat(this);
         clock.setText(DateFormat.format(h24 ? "H:mm" : "h:mm", now));
         date.setText(DateFormat.format("EEEE, d MMMM", now));
+        updatePrayerDisplay();
+    }
+
+    private void updatePrayerTimes() {
+        PrayerRepo.get(this, this::onPrayerUpdated);
+    }
+
+    private void updatePrayerDisplay() {
+        PrayerRepo.PrayerData d = PrayerRepo.computeCurrent(this);
+        if (d != null) onPrayerUpdated(d);
+        PrayerRepo.checkRefresh(this, this::onPrayerUpdated);
+    }
+
+    private void onPrayerUpdated(PrayerRepo.PrayerData data) {
+        if (data == null) return;
+        prayerSummary = data.fullSummary;
+        if (hijriText != null && data.hijri != null && !data.hijri.isEmpty()) {
+            hijriText.setText(data.hijri);
+            hijriText.setVisibility(View.VISIBLE);
+        }
+        if (prayerText != null && data.formattedLine != null && data.formattedLine.length() > 0) {
+            prayerText.setText(data.formattedLine);
+            if (data.isNow) {
+                prayerText.setTextColor(0xFF4CD964); // Apple green when prayer is now
+            } else {
+                prayerText.setTextColor(0xFFFFFFFF); // Clean white for upcoming prayer
+            }
+            prayerText.setVisibility(View.VISIBLE);
+        }
     }
 
     // ---------------------------------------------------------------- wallpapers
@@ -569,6 +717,15 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
             LinearLayout.LayoutParams plp2 = new LinearLayout.LayoutParams(-2, dp(32));
             plp2.topMargin = dp(8);
             counters.addView(sp, plp2);
+            sp.setOnClickListener(v -> {
+                Uri uri;
+                if ("yt".equals(kind)) uri = Uri.parse("https://youtube.com/@" + id);
+                else if ("ig".equals(kind)) uri = Uri.parse("https://instagram.com/" + id);
+                else uri = Uri.parse("https://facebook.com/" + id);
+                try {
+                    launch(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (Exception ignored) {}
+            });
             socialPills.add(sp);
             socialTexts.add(tv);
             showCount(i, prefs.getString("count_" + i, null));
@@ -686,6 +843,10 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                 Intent i = inputs.selected();
                 inputs.close();
                 if (i != null) launch(i);
+                else if (inputs.isLiveTvSelected()) {
+                    LiveTvInstaller.checkAndInstall(this);
+                    Toast.makeText(this, "Installing Live TV...", Toast.LENGTH_SHORT).show();
+                }
             } else inputs.close();   // back, left, right
             return true;
         }
@@ -774,6 +935,8 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                 pills[0].getLocationInWindow(loc);
                 inputs.open(loc[0], loc[1] + pills[0].getHeight() + dp(8));
             } else if (topIdx == 1) {
+                launchAirPlay();
+            } else if (topIdx == 2) {
                 launch(new Intent(Settings.ACTION_WIFI_SETTINGS));
             } else {
                 launch(new Intent(Settings.ACTION_SETTINGS));
@@ -782,6 +945,15 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
             launch(AppRepo.launchIntent(getPackageManager(), dockAdapter.apps.get(dockIdx)));
         } else if (zone == Zone.GRID && gridIdx < gridAdapter.getItemCount()) {
             launch(AppRepo.launchIntent(getPackageManager(), gridAdapter.apps.get(gridIdx)));
+        }
+    }
+
+    private void launchAirPlay() {
+        Intent intent = getPackageManager().getLaunchIntentForPackage("io.github.jqssun.airplay");
+        if (intent != null) {
+            launch(intent);
+        } else {
+            Toast.makeText(this, "AirPlay receiver is not installed", Toast.LENGTH_SHORT).show();
         }
     }
 

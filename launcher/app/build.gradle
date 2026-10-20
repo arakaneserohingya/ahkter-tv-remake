@@ -31,3 +31,56 @@ dependencies {
     // ADB client: the phone remote presses keys through the TV's own network ADB (see KeyInjector)
     implementation 'dev.mobile:dadb:1.2.10'
 }
+
+// Automatically ensure Live TV APK is bundled in launcher assets
+task bundleLiveTvAsset {
+    doLast {
+        def flutterApk = file("${rootDir}/../apps/live-tv/build/app/outputs/flutter-apk/app-release.apk")
+        def assetDest = file("${projectDir}/src/main/assets/live-tv.apk")
+        if (flutterApk.exists()) {
+            assetDest.parentFile.mkdirs()
+            java.nio.file.Files.copy(flutterApk.toPath(), assetDest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            println "Copied Live TV APK to launcher assets: ${assetDest.length()} bytes"
+        }
+    }
+}
+
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+    dependsOn bundleLiveTvAsset
+}
+
+// When installing launcher via Gradle or Android Studio, automatically install Live TV APK as well
+task installLiveTv {
+    doLast {
+        def flutterApk = file("${rootDir}/../apps/live-tv/build/app/outputs/flutter-apk/app-release.apk")
+        if (!flutterApk.exists()) {
+            println "Live TV APK not found at ${flutterApk}, skipping Live TV install."
+            return
+        }
+        def adb = android.getAdbExecutable().absolutePath
+        def out = new ByteArrayOutputStream()
+        exec {
+            commandLine adb, "devices"
+            standardOutput = out
+            ignoreExitValue = true
+        }
+        out.toString().eachLine { line ->
+            def parts = line.split("\\s+")
+            if (parts.length >= 2 && parts[1] == "device") {
+                def serial = parts[0]
+                println "Installing Live TV on ${serial}..."
+                exec {
+                    commandLine adb, "-s", serial, "install", "-r", "-t", flutterApk.absolutePath
+                    ignoreExitValue = true
+                }
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.matching { it.name.startsWith("install") && !it.name.contains("LiveTv") }.configureEach {
+        finalizedBy installLiveTv
+    }
+}
+

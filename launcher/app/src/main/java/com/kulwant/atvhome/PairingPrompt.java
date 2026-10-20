@@ -99,10 +99,12 @@ final class PairingPrompt {
         row.setGravity(Gravity.END);
         String[] labels = {"Don't allow", "Allow"};
         for (int i = 0; i < 2; i++) {
+            final int idx = i;
             buttons[i] = Ui.text(c, 500, 16, 0xFFFFFFFF);
             buttons[i].setText(labels[i]);
             buttons[i].setGravity(Gravity.CENTER);
             buttons[i].setPadding(Ui.dp(c, 22), 0, Ui.dp(c, 22), 0);
+            buttons[i].setOnClickListener(v -> dismiss(idx == 1));
             LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-2, Ui.dp(c, 42));
             if (i > 0) blp.leftMargin = Ui.dp(c, 10);
             row.addView(buttons[i], blp);

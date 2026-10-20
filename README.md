@@ -1,202 +1,298 @@
-# Android TV Makeover
+# Android TV Makeover: Akhter & Ruby TV Edition
 
-Debloat an Android TV over Wi-Fi, replace its ad-filled home screen with a clean Apple TV style
-launcher, control it from your phone, and add a fast live TV app for Indian channels. Everything is
-reversible.
+A beginner-friendly, complete guide to transforming your Google TV or Android TV into a clean, modern Apple TV–inspired setup.
 
-- **Launcher:** your photos fading behind the home screen, a dock of 5 apps, a 5-column app grid,
-  clock and greeting, YouTube / Instagram / Facebook follower counters, HDMI/AV switcher.
-- **Phone remote:** a web page served by the TV. Trackpad, keyboard, volume, apps, inputs, sending
-  photos to the TV, and Siri shortcuts. Works in Safari on iPhone and in any phone browser.
-- **Live TV app:** Indian channels in categories, 1080p only, smooth on a 1 GB TV.
+Replaces slow, ad-heavy stock launchers with an ultra-clean, ad-free interface, adds native **AirPlay** and **Samsung Smart View (Miracast)** screen mirroring, **Islamic prayer times & Hijri calendar**, **live social media subscriber counters**, a **zero-latency phone remote**, and a **1080p Live TV streaming app**.
 
-Built and tested on a Xiaomi MiTV-AXSO0 (Android TV 9, 1 GB RAM). It should work on most Android TV /
-Google TV sets (Xiaomi, TCL, Hisense, Sony, OnePlus, Realme, Nvidia Shield). It does not work on
-Samsung Tizen, LG webOS or Fire TV.
+Everything runs locally on your TV, requires under 40 MB of RAM, and is **100% reversible** at any time.
 
-| Home screen | Inputs menu |
-|---|---|
-| ![Launcher home](docs/images/launcher-home.png) | ![Inputs menu](docs/images/launcher-inputs.png) |
+---
 
-| App grid (5 per row) | Phone remote |
-|---|---|
-| ![App grid](docs/images/launcher-grid.png) | <img src="docs/images/phone-remote.png" alt="Phone remote: trackpad, buttons and keyboard" width="180"> <img src="docs/images/phone-apps.png" alt="Phone remote: apps and inputs" width="180"> |
+## 📺 Visual Showcase
 
-| Live TV app | Categories |
-|---|---|
+| Home Screen | App Grid & Miracast |
+|:---:|:---:|
+| ![Launcher Home](docs/images/launcher-home.png) | ![App Grid](docs/images/launcher-grid.png) |
+| *Personalized greeting, Hijri calendar, prayer countdown, and glowing dock* | *Custom 16:9 banners, including Samsung Smart View / Miracast* |
+
+| Miracast (Smart View) Tile | Phone Remote (Web App) |
+|:---:|:---:|
+| <img src="docs/images/miracast-tile.png" alt="Miracast Smart View Tile" width="340"> | <img src="docs/images/phone-remote.png" alt="Phone remote: trackpad, buttons and keyboard" width="170">&nbsp;&nbsp;<img src="docs/images/phone-apps.png" alt="Phone remote: apps and inputs" width="170"> |
+| *Native screen casting tile sorted cleanly under 'M'* | *Zero-install touch remote, keyboard, and app launcher at `http://<TV-IP>:8080`* |
+
+| Live TV App | Category Sidebar |
+|:---:|:---:|
 | ![Live TV](docs/images/live-tv-all.png) | ![News](docs/images/live-tv-news.png) |
+| *Ultra-fast 1080p channel streaming* | *Organized categories with instant cache* |
 
-## What's inside
+---
 
-| Path | What it is |
-|---|---|
-| `launcher/` | Native Android TV launcher (Java, AndroidX RecyclerView, minSdk 28, ~40 MB RAM). Rotating photo wallpapers (or pitch black), a dock of five apps with a colour glow sampled from the focused app, a 5-column app grid below (the number per row is a setting), one glass focus highlight, clock and greeting in Outfit, frosted Inputs / Wi-Fi / Settings pills, follower counters, HDMI/AV/Live TV input switcher, deterministic D-pad navigation. Also runs the phone remote's web server. |
-| `apps/live-tv/` | Live TV app (Flutter), a modified fork of [kananinirav/Indian-IPTV-App](https://github.com/kananinirav/Indian-IPTV-App). Category sidebar, small channel logos, 1080p streams only, instant start from cache, Up/Down channel switching, automatic backup streams. See [apps/live-tv/README.md](apps/live-tv/README.md). |
-| `tools/tv` | Tiny ADB client in Python (`adb-shell`): `shell`, `screenshot`, `push`, `pull`, `key`. Works when macOS Local Network privacy blocks the stock `adb` binary. |
-| `profiles/` | Debloat profiles: which packages to disable for a given TV. |
-| `PROMPT.md` | The prompt to give a coding assistant (e.g. Claude Code) to do all of this on your TV, step by step, with screenshots. |
+## ✨ Features at a Glance
 
-## Quick start
+* **Clean Apple TV Interface**: Fluid D-pad navigation, custom Outfit typography, dynamic color-matching app glow, and an OLED pitch-black background or rotating family photo wallpapers.
+* **Personalized Header**:
+  * Time-aware greeting (`Good morning`, `Good afternoon`, `Good evening, Akhter & Ruby`).
+  * Current date and official **Islamic Hijri Calendar** (*e.g., 9 Jumada al-Ula 1448 AH*).
+  * **Accurate Prayer Times with Countdown** (*e.g., Fajr 5:39 in 6 h 34m*). Click the prayer text anytime to display a full on-screen schedule toast (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha).
+* **Quick-Access Top Pills**:
+  * 🔌 **Inputs**: Switch between HDMI 1, HDMI 2, AV, and TV inputs.
+  * 📺 **AirPlay**: Launches "My TV Airplay" to cast screens and music from iPhone, iPad, or Mac.
+  * 📶 **Wi-Fi**: Shows current Wi-Fi name (*e.g., Ruby Akhter*); click to open Network Settings.
+  * ⚙️ **Settings**: Opens standard Android / Google TV Settings.
+* **Social Media Counters**: Live follower & subscriber badges for YouTube, Instagram, and Facebook.
+* **Native Screen Mirroring**:
+  * **Apple AirPlay**: Full screen mirroring and audio streaming.
+  * **Samsung Smart View / Miracast**: Built-in Wi-Fi Display sink integration automatically styled with a custom screen cast banner and sorted under 'M' for easy launching from any Android phone or Windows PC.
+* **Home Button Interception**:
+  * Bypasses Google TV's forced ad launcher safely using a lightweight background accessibility service.
+  * Pressing **Home**, **double-pressing Home**, exiting apps via **Back**, or **turning on the TV** always returns straight to your clean launcher without black recovery screens or errors.
+* **Phone Web Remote**:
+  * Open `http://<TV-IP>:8080` on any phone browser.
+  * Includes a touch trackpad, volume controls, app launcher, photo slideshow uploader, and instant keyboard typing into search fields.
 
-On the TV: Settings → Device Preferences → About → press OK on **Build** 7 times, then go back →
-Developer options → turn on **USB debugging** (and Network/ADB debugging if your TV shows it).
+---
 
-On a Mac or Linux computer on the same Wi-Fi:
+## 🛠️ Beginner Installation Guide (Step-by-Step)
+
+Follow these simple steps to set up your TV. You only need a computer (Mac, Windows, or Linux) connected to the **same Wi-Fi network** as your TV.
+
+### Step 1: Enable Developer Options on Your TV
+1. Turn on your TV and open **Settings** (gear icon in the top right).
+2. Go to:
+   * **Device Preferences → About** (on Android TV), OR
+   * **System → About** (on Google TV).
+3. Scroll down to **Android TV OS build** (or **Build**).
+4. Press the **OK / Center button on your remote 7 times**. You will see a message: *"You are now a developer!"*
+5. Press the Back button once to return to the previous menu.
+6. Open the newly appeared **Developer options** menu.
+7. Turn **ON** these two switches:
+   * ✅ **USB debugging**
+   * ✅ **Wireless debugging** (or **Network debugging** if your TV shows it).
+
+---
+
+### Step 2: Find Your TV's IP Address
+1. In your TV's **Settings**, go to **Network & Internet**.
+2. Click on the Wi-Fi network you are connected to.
+3. Look for the **IP address** (for example: `192.168.0.146` or `192.168.1.50`).
+4. Write this IP address down—you will use it to connect from your computer.
+
+---
+
+### Step 3: Set Up Your Computer
+
+Choose your computer operating system below:
+
+#### 🍏 On Mac (macOS):
+Open the **Terminal** app (press `Cmd + Space`, type `Terminal`, and press Enter).
+If you don't already have Homebrew, install it, then install Java and Android tools:
 
 ```bash
-./setup.sh
+# 1. Install Java 17 and Android tools
+brew install openjdk@17
+brew install --cask android-commandlinetools
+brew install android-platform-tools
 ```
+
+#### 🪟 On Windows:
+1. Download and install **Git for Windows** from [git-scm.com](https://gitforwindows.org/) (use Git Bash).
+2. Download and install **Java JDK 17** from [adoptium.net](https://adoptium.net/).
+3. Download **Android SDK Platform-Tools (ADB)** from [developer.android.com/tools/releases/platform-tools](https://developer.android.com/tools/releases/platform-tools), extract the zip, and add the folder to your System PATH.
+
+#### 🐧 On Linux (Ubuntu / Debian):
+```bash
+sudo apt update
+sudo apt install openjdk-17-jdk adb git
+```
+
+---
+
+### Step 4: Clone this Project
+Open your computer's terminal and run:
 
 ```bash
-tools/find-tv.sh
+git clone https://github.com/your-username/ahkter-tv-remake.git
+cd ahkter-tv-remake
 ```
 
-Accept the "Allow USB debugging?" prompt on the TV (tick "Always allow"). Then back up first:
+---
+
+### Step 5: Connect Your Computer to the TV Over Wi-Fi
+Replace `192.168.0.146` with your TV's actual IP address from Step 2:
 
 ```bash
-./backup.sh
+adb connect 192.168.0.146:5555
 ```
 
-### 1. Debloat
+**⚠️ IMPORTANT STEP ON YOUR TV SCREEN:**
+A popup will immediately appear on your TV: **"Allow USB debugging?"**
+1. Use your TV remote to tick the checkbox: **"Always allow from this computer"**.
+2. Click **OK / Allow**.
 
-Profiles list packages to disable with `pm disable-user` (nothing is uninstalled). Package names differ
-between brands, so for another TV copy the profile and edit it; check what a package does with
-`tools/tv shell "dumpsys package <name>"`. Never disable TV input services, the remote/Bluetooth
-services, the keyboard, or Play Store/Services.
-
+Check that the connection is active:
 ```bash
-./disable.sh profiles/xiaomi-mitv-axso0.txt
+adb devices
+```
+You should see your TV listed with the status `device`:
+```text
+List of devices attached
+192.168.0.146:5555    device
 ```
 
-### 2. Launcher
+---
 
-Edit `launcher/app/src/main/res/values/config.xml` (dock apps, hidden apps, greeting name, wallpaper),
-then:
+### Step 6: Customize Your Settings (Optional)
+
+Open the configuration file in any text editor:
+`launcher/app/src/main/res/values/config.xml`
+
+Here are the easy settings you can change:
+
+```xml
+<!-- 1. Your Custom Greeting Name -->
+<!-- Note: If using an ampersand (&), write it as &amp; -->
+<string name="greeting_name">Akhter &amp; Ruby</string>
+
+<!-- 2. Apps on the Main Dock (left to right by package name) -->
+<string-array name="dock_packages">
+    <item>com.google.android.youtube.tv</item>
+    <item>org.smarttube.stable</item>
+    <item>com.netflix.ninja</item>
+    <item>com.kulwant.livetv</item>
+    <item>my.com.tm.telekom.unifitv.tv</item>
+</string-array>
+
+<!-- 3. Number of Apps Per Row (3 to 6, default is 5) -->
+<integer name="columns">5</integer>
+
+<!-- 4. Islamic Prayer Times Zone (JAKIM e-Solat official code) -->
+<!-- Examples: WLY01 (Kuala Lumpur/Putrajaya), SGR01 (Gombak/PJ/Selangor), JHR02 (Johor Bahru) -->
+<string name="prayer_zone">WLY01</string>
+
+<!-- 5. Social Media Follower Counters (shown in top-right) -->
+<string-array name="youtube_channels">
+    <item>@akhterhusin_rkb</item>
+    <item>@rubyahkterchth</item>
+</string-array>
+<string-array name="facebook_pages">
+    <item>ahkter.husin</item>
+</string-array>
+
+<!-- 6. Background Wallpaper (true for rotating photos, false for pure pitch-black OLED) -->
+<bool name="use_wallpaper">true</bool>
+<integer name="wallpaper_seconds">30</integer>
+```
+
+> **💡 How to find an app's package name?**
+> Run: `adb shell pm list packages -3` to see all apps you installed, or open the **Apps** tab on the phone remote.
+
+---
+
+### Step 7: Build and Install in One Command
+
+Run the master install script in your terminal:
 
 ```bash
 ./build_and_install.sh
 ```
 
-Needs JDK 17 and the Android SDK (platform 34, build-tools 34): `brew install openjdk@17` and
-`brew install --cask android-commandlinetools`, then
-`sdkmanager "platforms;android-34" "build-tools;34.0.0"`. If several apps claim Home, the script sets
-the default with `cmd package set-home-activity`.
+#### What this script does automatically:
+1. Compiles the native launcher app.
+2. Automatically copies and installs the 1080p **Live TV app**.
+3. Installs and configures **My TV Airplay**.
+4. Automatically grants required TV permissions (`ACCESS_COARSE_LOCATION` for Wi-Fi SSID, `SYSTEM_ALERT_WINDOW` for phone pairing).
+5. **Enables the Home Interception Service** so your remote's Home button opens your clean launcher every time.
 
-### 3. Live TV app (optional)
+Your TV screen will immediately switch over to your new launcher!
 
-Needs Flutter (`brew install --cask flutter`):
+---
 
+## 📱 Setting Up the Phone Web Remote
+
+No app needs to be installed on your phone. The TV hosts its own remote control web page:
+
+1. Make sure your phone is connected to the same Wi-Fi as your TV.
+2. Open Safari or Chrome on your phone and go to:
+   ```text
+   http://<TV-IP>:8080
+   ```
+   *(Example: `http://192.168.0.146:8080`)*
+3. Tap the button: **"Pair with TV"**.
+4. A prompt will appear on your TV screen: *"Allow this phone to control the TV?"*
+   * Press **Right Arrow**, then **OK** on your physical TV remote to approve.
+5. **Add to Phone Home Screen**:
+   * **On iPhone**: Tap the Share icon (square with arrow) → tap **Add to Home Screen**.
+   * **On Android**: Tap the three dots menu (⋮) → tap **Install App** or **Add to Home Screen**.
+6. You now have an ad-free, full-screen touch remote with trackpad, live keyboard typing, and photo uploader!
+
+---
+
+## 🕹️ Everyday Controls & Remote Cheat-Sheet
+
+| Action | What to Press on Physical Remote |
+|---|---|
+| **Navigate Tiles** | **Arrow Keys** (Left / Right / Up / Down) |
+| **Open App** | **OK / Center Button** |
+| **Access Top Menu** | Press **Up** from the dock row (Inputs, AirPlay, Wi-Fi, Settings) |
+| **Browse All Installed Apps** | Press **Down** from the dock row to scroll into the 5-column app grid |
+| **Return to Dock** | Press **Back** or press **Home** |
+| **Rearrange / Change Dock Apps** | **Long-press OK** (or press the **Menu** button) on any dock icon |
+| **View Full Prayer Timetable** | Click the **Time / Prayer text** in the top-left corner |
+| **Screen Cast (Android/Samsung)** | Click the **Miracast (Smart View)** tile in the app grid |
+| **Screen Mirror (Apple/iPhone)** | Click the **AirPlay** pill in the top menu |
+
+---
+
+## ❓ Frequently Asked Questions & Troubleshooting
+
+### Q: Why does pressing Home or waking the TV briefly show Google TV?
+**A:** Google TV firmware hardcodes `KEYCODE_HOME` to launch Google's ad launcher. Our built-in **HomeInterceptService** monitors window changes in real time and redirects you back to Akhter & Ruby TV Home within 80 milliseconds.
+
+### Q: How do I re-enable the Home button redirect if it stops working?
+If you updated TV firmware or restarted accessibility services, run this single command:
 ```bash
-./build_live_tv.sh
+adb shell settings put secure enabled_accessibility_services com.kulwant.atvhome/.HomeInterceptService
+adb shell settings put secure accessibility_enabled 1
 ```
 
-### Undo everything
+### Q: ADB says "failed to connect" or "Connection refused"
+1. Verify both your computer and TV are connected to the exact same Wi-Fi network (not guest Wi-Fi).
+2. Check that **Network Debugging / USB Debugging** is still toggled **ON** in TV Developer Options.
+3. Restart ADB on your computer:
+   ```bash
+   adb kill-server
+   adb connect <TV-IP>:5555
+   ```
 
+### Q: ADB says "device unauthorized"
+Look at your TV screen. A prompt asking **"Allow USB debugging?"** is waiting for your confirmation. Select **"Always allow from this computer"** and press **OK**.
+
+### Q: The Wi-Fi pill in the top right does not show my Wi-Fi name
+Android requires location permission to read Wi-Fi network names (SSID). Run:
 ```bash
-./restore.sh profiles/xiaomi-mitv-axso0.txt --uninstall
+adb shell pm grant com.kulwant.atvhome android.permission.ACCESS_COARSE_LOCATION
 ```
 
-Or re-enable a single app: `tools/tv shell "pm enable <package>"`.
+### Q: How do I completely uninstall and revert back to factory default?
+If you ever want to revert everything back to stock:
+```bash
+# 1. Disable the accessibility service
+adb shell settings put secure enabled_accessibility_services '""'
+adb shell settings put secure accessibility_enabled 0
 
-## Phone remote
+# 2. Uninstall custom apps
+adb uninstall com.kulwant.atvhome
+adb uninstall com.kulwant.livetv
+adb uninstall io.github.jqssun.airplay
+```
+Your TV will immediately return to its original stock state with zero leftover modifications.
 
-The launcher serves a control page on your home Wi-Fi at `http://<TV IP>:8080` (the IP is in
-`.tv-ip` after `tools/find-tv.sh`, or in the TV's Wi-Fi settings).
+---
 
-1. Open it in Safari (or any phone browser) on the same Wi-Fi.
-2. Tap **Pair with TV**. The TV asks "Allow this phone to control the TV?" over whatever is on
-   screen: press Right, then OK on the remote. Each phone pairs once.
-3. On iPhone: Share → **Add to Home Screen**, and it opens full-screen like an app.
+## 📜 Credits and Licenses
 
-Four tabs:
-
-- **Remote:** a trackpad (swipe to move, tap for OK), Back, Home, play/pause, volume and mute, and a
-  keyboard that types live into whatever search box is open on the TV (Return = Search).
-- **Apps:** every app on the TV with its banner, plus HDMI/AV/Live TV. Tap to open.
-- **Photos:** add photos from the phone and frame them (drag and pinch; dashed boxes show where the
-  clock, buttons and apps sit). They fade in on the home screen straight away. Tap a photo to show it
-  now, re-frame it, replace it or remove it.
-- **Siri:** links to paste into the Shortcuts app ("Get Contents of URL") so "Hey Siri, Netflix on
-  TV" opens apps, and one for playing a shared YouTube link on the TV.
-
-The first time you use the Remote tab, the TV asks **Allow USB debugging?**: tick **Always allow**
-and press OK. That's what lets the trackpad and keyboard press keys (see below).
-
-**How the trackpad and keyboard work.** Android doesn't let an app press keys in other apps. The TV
-already has network ADB switched on for this project, so the launcher connects to its own ADB
-(`127.0.0.1:5555`, via [dadb](https://github.com/mobile-dev-inc/dadb)) and keeps one shell open. Each
-key press is a single shell-builtin write of raw Linux input events to the remote control's
-`/dev/input` device, so no process is started: it takes a few milliseconds instead of the ~1 s of
-`input keyevent` on a slow TV. Key codes come from the remote's own key layout file, read from
-`dumpsys input` at connect time, so it works on TVs whose remotes use different codes. Keys the
-remote doesn't have (Enter, and on some TVs a few letters) fall back to `input keyevent` /
-`input text`. See `KeyInjector.java`.
-
-**Security.** Only paired phones can use the page, and pairing needs someone in the room: it's
-approved with the TV remote, so there is no code to guess from the network ("Don't allow" is
-selected first, one request at a time, a refused phone waits a minute). Paired phones get a random
-token, and "Unpair this phone" revokes it on the TV. Bodies from unpaired callers are capped at 4 KB. The server only answers requests addressed to an IP, which blocks DNS-rebinding attacks
-from websites. It is still plain HTTP on your home network, and the remote has the same power as
-network ADB (which anyone on your Wi-Fi can already reach while it's on), so use it on a network you
-trust.
-
-## Using the launcher
-
-- Left/Right moves along a row; Up/Down always moves exactly one row.
-- Up from the dock goes to the top buttons; Down from the dock scrolls into the app grid.
-- Back returns to the dock. Home while already home also returns to the dock.
-- Inputs opens HDMI / AV / Live TV; it switches through Android's TV input framework.
-- It remembers the last tile you were on.
-
-## Changing the launcher
-
-All in `launcher/app/src/main/res/values/config.xml`:
-
-- **Dock:** `dock_packages`, package names left to right. Find one with
-  `tools/tv shell "pm list packages | grep -i <name>"`.
-- **Hide an app from the grid:** add it to `hidden_packages`.
-- **Apps per row:** `columns` (3 to 6; 5 by default), for the dock and the grid.
-- **Greeting name:** `greeting_name` (empty for just "Good evening").
-- **Wallpapers:** add photos from the phone page (easiest), or put 1280×720 images named
-  `wallpaper_1.jpg`, `wallpaper_2.jpg`, … in `launcher/app/src/main/res/drawable-nodpi/` before
-  building. They're copied into the TV's photo store on first run and then managed from the phone.
-  A `wallpaper_1_o.jpg` next to one is its full-size version, used when re-framing. These files are
-  git-ignored so personal photos don't get published. `wallpaper_seconds` sets how often they change
-  (30 by default); `use_wallpaper` `false` keeps the background pitch black.
-- **Follower counters:** `youtube_channel`, `instagram_user`, `facebook_page`. Leave any empty to
-  hide it. They're read from each profile's public page every 30 minutes (no API keys), so they can
-  stop updating if a site changes its page; they then keep showing the last number.
-
-## Troubleshooting
-
-- **`adb` says "No route to host" on macOS although the port is open:** that's macOS Local Network
-  privacy blocking the `adb` binary. `tools/tv` doesn't have that problem.
-- **Home shows a chooser or the old launcher:**
-  `tools/tv shell "cmd package set-home-activity com.kulwant.atvhome/.HomeActivity"`
-- **The launcher crashes and Home does nothing:**
-  `tools/tv shell "pm enable com.google.android.tvlauncher"`
-- **The phone page doesn't load:** the phone must be on the same Wi-Fi, and the address must be the
-  TV's IP, not a name. If your router gives the TV a new IP now and then, reserve one for it in the
-  router's DHCP settings, or the page and Siri links stop working.
-- **Pairing says the TV can't show the prompt:**
-  `tools/tv shell "appops set com.kulwant.atvhome SYSTEM_ALERT_WINDOW allow"` (`build_and_install.sh`
-  does this).
-- **The Remote tab shows a yellow message:** accept "Allow USB debugging?" on the TV (tick Always
-  allow). If network debugging was switched off, turn it back on in Developer options.
-- **Gradle says everything is up to date but the APK didn't change:** build with
-  `./gradlew clean assembleDebug --no-watch-fs`.
-- **Gradle can't download its distribution (Java connection timeout) but curl works:** download the
-  zip named in `gradle/wrapper/gradle-wrapper.properties` with curl and point `distributionUrl` at it
-  with `file\:/path/to/zip`.
-
-## Credits and licences
-
-- Everything in this repo is MIT licensed (`LICENSE`), except the parts below, which keep their own
-  licences.
-- Live TV app: fork of [kananinirav/Indian-IPTV-App](https://github.com/kananinirav/Indian-IPTV-App)
-  (MIT, see `apps/live-tv/LICENSE`). It's a player for public playlists from
-  [iptv-org](https://github.com/iptv-org/iptv) and hosts no content.
-- [dadb](https://github.com/mobile-dev-inc/dadb) (Apache 2.0), the ADB client the phone remote uses
-  to press keys.
-- Font: [Outfit](https://github.com/Outfitio/Outfit-Fonts), SIL Open Font License (`fonts/OFL.txt`).
-- App names and logos in screenshots belong to their owners.
+* Core Launcher code is licensed under the **MIT License**.
+* **Live TV App**: Modified fork of [kananinirav/Indian-IPTV-App](https://github.com/kananinirav/Indian-IPTV-App) (MIT License). Streams sourced from public legal IPTV playlists via [iptv-org](https://github.com/iptv-org/iptv).
+* **Remote Key Injection**: Powered by [dadb](https://github.com/mobile-dev-inc/dadb) (Apache 2.0).
+* **Typography**: [Outfit Font Family](https://github.com/Outfitio/Outfit-Fonts) (SIL Open Font License).
+* All app icons and trademarks belong to their respective owners.

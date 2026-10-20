@@ -12,6 +12,12 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
+import android.graphics.Typeface;
+
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,8 +65,8 @@ final class AppRepo {
         Collator col = Collator.getInstance();
         Collections.sort(r.grid, (x, y) -> col.compare(x.label, y.label));
 
-        for (App a : r.dock) render(pm, a);
-        for (App a : r.grid) render(pm, a);
+        for (App a : r.dock) render(c, pm, a);
+        for (App a : r.grid) render(c, pm, a);
         return r;
     }
 
@@ -88,13 +94,22 @@ final class AppRepo {
             App a = new App();
             a.pkg = ai.packageName;
             a.component = new ComponentName(ai.packageName, ai.name);
-            a.label = String.valueOf(ri.loadLabel(pm)).trim();
+            if ("com.mediatek.miracast".equals(ai.packageName)) {
+                a.label = "Miracast (Smart View)";
+            } else {
+                a.label = String.valueOf(ri.loadLabel(pm)).trim();
+            }
             a.leanback = leanback;
             out.put(a.pkg, a);
         }
     }
 
-    private static void render(PackageManager pm, App a) {
+    private static void render(Context c, PackageManager pm, App a) {
+        if ("com.mediatek.miracast".equals(a.pkg)) {
+            a.banner = renderMiracastBanner(c);
+            a.glow = 0xFF2563EB; // vibrant Samsung royal blue glow
+            return;
+        }
         Bitmap b = Bitmap.createBitmap(BANNER_W, BANNER_H, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(b);
         Drawable banner = null;
@@ -124,6 +139,61 @@ final class AppRepo {
         }
         a.banner = b;
         a.glow = vivid(sample(Bitmap.createScaledBitmap(b, 32, 18, true)));
+    }
+
+    private static Bitmap renderMiracastBanner(Context c) {
+        Bitmap b = Bitmap.createBitmap(BANNER_W, BANNER_H, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(b);
+
+        // Samsung Smart View style gradient: deep navy into obsidian
+        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bgPaint.setShader(new LinearGradient(
+                0, 0, BANNER_W, BANNER_H,
+                new int[]{ 0xFF101E3E, 0xFF0B1428, 0xFF060A14 },
+                new float[]{ 0f, 0.55f, 1f },
+                Shader.TileMode.CLAMP
+        ));
+        cv.drawRect(0, 0, BANNER_W, BANNER_H, bgPaint);
+
+        // Ambient radial glow behind the cast icon
+        Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        glowPaint.setShader(new RadialGradient(
+                BANNER_W / 2f, 62f, 75f,
+                new int[]{ 0x662563EB, 0x1A1D4ED8, 0x00000000 },
+                new float[]{ 0f, 0.55f, 1f },
+                Shader.TileMode.CLAMP
+        ));
+        cv.drawCircle(BANNER_W / 2f, 62f, 75f, glowPaint);
+
+        // Cast Icon (ic_screencast)
+        Drawable icon = c.getDrawable(R.drawable.ic_screencast);
+        if (icon != null) {
+            int iconSize = 60;
+            int l = (BANNER_W - iconSize) / 2;
+            int t = 26;
+            icon.setBounds(l, t, l + iconSize, t + iconSize);
+            icon.setTint(0xFFFFFFFF);
+            icon.draw(cv);
+        }
+
+        // Title: "Smart View"
+        Paint titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        titlePaint.setColor(0xFFFFFFFF);
+        titlePaint.setTextSize(21f);
+        titlePaint.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        titlePaint.setTextAlign(Paint.Align.CENTER);
+        cv.drawText("Smart View", BANNER_W / 2f, 126f, titlePaint);
+
+        // Subtitle: "MIRACAST"
+        Paint subPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        subPaint.setColor(0xFF93C5FD);
+        subPaint.setTextSize(11f);
+        subPaint.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        subPaint.setTextAlign(Paint.Align.CENTER);
+        subPaint.setLetterSpacing(0.18f);
+        cv.drawText("MIRACAST", BANNER_W / 2f, 148f, subPaint);
+
+        return b;
     }
 
     private static Bitmap drawableBitmap(Drawable d, int w, int h) {

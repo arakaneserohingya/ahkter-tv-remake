@@ -40,6 +40,17 @@ final class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
         notifyDataSetChanged();
     }
 
+    interface OnTileClickListener {
+        void onTileClick(int pos);
+        void onTileLongClick(int pos);
+    }
+
+    private OnTileClickListener clickListener;
+
+    void setOnTileClickListener(OnTileClickListener l) {
+        this.clickListener = l;
+    }
+
     static final class Holder extends RecyclerView.ViewHolder {
         final ImageView card;
         final TextView label;
@@ -94,6 +105,25 @@ final class TileAdapter extends RecyclerView.Adapter<TileAdapter.Holder> {
         h.card.setScaleX(f ? FOCUS_SCALE : 1f);
         h.card.setScaleY(f ? FOCUS_SCALE : 1f);
         h.label.setAlpha(f && labels ? 1f : 0f);
+
+        h.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                int p = h.getBindingAdapterPosition();
+                if (p != RecyclerView.NO_POSITION) {
+                    clickListener.onTileClick(p);
+                }
+            }
+        });
+        h.itemView.setOnLongClickListener(v -> {
+            if (clickListener != null) {
+                int p = h.getBindingAdapterPosition();
+                if (p != RecyclerView.NO_POSITION) {
+                    clickListener.onTileLongClick(p);
+                    return true;
+                }
+            }
+            return false;
+        });
     }
 
     @Override
