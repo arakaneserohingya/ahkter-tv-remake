@@ -327,7 +327,8 @@ final class PhoneServer {
                 return;
             case "/api/photo":
                 if ("POST".equals(r.method)) {
-                    File f = Wallpapers.add(c, r.body);
+                    boolean isUnsplash = "1".equals(param(r, "unsplash"));
+                    File f = Wallpapers.add(c, r.body, isUnsplash);
                     json(out, 200, f == null ? err("not an image, or the album is full")
                             : ok().put("id", f.getName().replace(".jpg", "")));
                 } else {
@@ -347,6 +348,37 @@ final class PhoneServer {
                 return;
             case "/api/photo/delete":
                 json(out, 200, Wallpapers.delete(c, param(r, "id")) ? ok() : err("not found"));
+                return;
+            case "/api/wallpaper/mode":
+                if ("POST".equals(r.method)) {
+                    String mode = param(r, "mode");
+                    if (Wallpapers.MODE_LOCAL.equals(mode) || Wallpapers.MODE_UNSPLASH.equals(mode) || Wallpapers.MODE_BOTH.equals(mode)) {
+                        Wallpapers.setMode(c, mode);
+                        json(out, 200, ok().put("mode", mode));
+                    } else {
+                        json(out, 200, err("invalid mode: " + mode));
+                    }
+                } else {
+                    json(out, 200, ok().put("mode", Wallpapers.getMode(c)));
+                }
+                return;
+            case "/api/photo/download":
+                if ("POST".equals(r.method)) {
+                    String url = param(r, "url");
+                    if (url == null || url.isEmpty()) {
+                        json(out, 200, err("missing url"));
+                        return;
+                    }
+                    try {
+                        File f = Wallpapers.downloadAndAdd(c, url);
+                        json(out, 200, f == null ? err("album full or invalid image")
+                                : ok().put("id", f.getName().replace(".jpg", "")));
+                    } catch (Exception ex) {
+                        json(out, 200, err("download failed: " + ex.getMessage()));
+                    }
+                } else {
+                    json(out, 404, err("POST required"));
+                }
                 return;
             default:
                 send(out, 404, "text/plain", "not found".getBytes(StandardCharsets.UTF_8), null);
@@ -498,9 +530,15 @@ final class PhoneServer {
         for (InputsMenu.Item it : InputsMenu.list(c)) in.put(new JSONObject().put("label", it.label).put("connected", it.connected));
         o.put("inputs", in);
         JSONArray ph = new JSONArray();
-        for (File f : Wallpapers.userPhotos(c)) ph.put(new JSONObject().put("id", f.getName().replace(".jpg", "")));
+        for (File f : Wallpapers.userPhotos(c)) {
+            String name = f.getName().replace(".jpg", "");
+            boolean isUnsplash = name.startsWith("unsplash_");
+            String type = isUnsplash ? "unsplash" : "local";
+            ph.put(new JSONObject().put("id", name).put("type", type));
+        }
         o.put("photos", ph);
         o.put("maxPhotos", Wallpapers.MAX_PHOTOS);
+        o.put("wallpaperMode", Wallpapers.getMode(c));
         return o;
     }
 

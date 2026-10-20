@@ -46,9 +46,14 @@ Everything runs locally on your TV, requires under 40 MB of RAM, and is **100% r
 * **Home Button Interception**:
   * Bypasses Google TV's forced ad launcher safely using a lightweight background accessibility service.
   * Pressing **Home**, **double-pressing Home**, exiting apps via **Back**, or **turning on the TV** always returns straight to your clean launcher without black recovery screens or errors.
+* **Custom Rotating Wallpapers & Unsplash 4K Integration**:
+  * Rotate through **Local user photos**, curated **Unsplash 4K Ultra-HD photography**, or seamlessly **Mix Both**.
+  * Switch rotation modes in real time from the phone remote (`✨ Mix Both` | `📁 Local Only` | `🌄 Unsplash Only`).
+  * Built-in **Unsplash 4K Explorer** with categorized collections (*Mountains & Nature*, *Dark OLED & Space*, *Moody Cities*, *Ocean Waves*, *Islamic Heritage*, *Minimalist & Art*).
+  * Direct one-tap "Set on TV" downloads over Wi-Fi, interactive pinch/drag framing canvas, and support for pasting any custom Unsplash photo link or ID.
 * **Phone Web Remote**:
   * Open `http://<TV-IP>:8080` on any phone browser.
-  * Includes a touch trackpad, volume controls, app launcher, photo slideshow uploader, and instant keyboard typing into search fields.
+  * Includes a touch trackpad, volume controls, app launcher, wallpaper source mode switcher, Unsplash 4K explorer, and instant keyboard typing into search fields.
 
 ---
 
@@ -181,6 +186,8 @@ Here are the easy settings you can change:
 <!-- 6. Background Wallpaper (true for rotating photos, false for pure pitch-black OLED) -->
 <bool name="use_wallpaper">true</bool>
 <integer name="wallpaper_seconds">30</integer>
+<!-- Wallpaper source: "both" (default), "local", or "unsplash" -->
+<string name="wallpaper_source">both</string>
 ```
 
 > **💡 How to find an app's package name?**

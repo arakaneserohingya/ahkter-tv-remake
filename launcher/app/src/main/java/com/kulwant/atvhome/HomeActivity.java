@@ -612,7 +612,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private boolean findWallpapers() {
         // bundled wallpapers are copied into the photo store on first run (see Wallpapers)
         wallpapers.clear();
-        wallpapers.addAll(Wallpapers.userPhotos(this));
+        wallpapers.addAll(Wallpapers.activePhotos(this));
         return !wallpapers.isEmpty();
     }
 
