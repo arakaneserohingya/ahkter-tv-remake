@@ -43,4 +43,8 @@
          With more than one they fade from one to the next every wallpaper_seconds. false = pitch black. -->
     <bool name="use_wallpaper">true</bool>
     <integer name="wallpaper_seconds">30</integer>
+
+    <!-- Islamic prayer times & Hijri date (JAKIM e-Solat official Malaysian timetable)
+         Zone code for your district (e.g. WLY01 for Kuala Lumpur/Putrajaya, SGR01 for Gombak/PJ/KL/Selangor, etc.) -->
+    <string name="prayer_zone">WLY01</string>
 </resources>

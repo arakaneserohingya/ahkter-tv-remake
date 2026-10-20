@@ -48,15 +48,39 @@ final class InputsMenu {
         return panel.getVisibility() == View.VISIBLE;
     }
 
+    interface OnSelectListener {
+        void onSelect(Intent intent);
+    }
+
+    private OnSelectListener listener;
+
+    void setOnSelectListener(OnSelectListener l) {
+        this.listener = l;
+    }
+
     void open(int leftPx, int topPx) {
         load();
         list.removeAllViews();
         rows.clear();
-        for (Item it : items) {
+        for (int i = 0; i < items.size(); i++) {
+            final int idx = i;
+            Item it = items.get(i);
             TextView t = Ui.text(c, 400, 15, it.connected ? 0xFFFFFFFF : 0x80FFFFFF);
             t.setText(it.label);
             t.setGravity(Gravity.CENTER_VERTICAL);
             t.setPadding(Ui.dp(c, 14), 0, Ui.dp(c, 14), 0);
+            t.setOnClickListener(v -> {
+                sel = idx;
+                paint();
+                Intent intent = selected();
+                close();
+                if ("Live TV".equals(it.label) && intent == null) {
+                    LiveTvInstaller.checkAndInstall(c);
+                    android.widget.Toast.makeText(c, "Installing Live TV...", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (listener != null && intent != null) listener.onSelect(intent);
+            });
             list.addView(t, new LinearLayout.LayoutParams(Ui.dp(c, 188), Ui.dp(c, 38)));
             rows.add(t);
         }
@@ -87,6 +111,10 @@ final class InputsMenu {
 
     Intent selected() {
         return items.isEmpty() ? null : items.get(sel).intent;
+    }
+
+    boolean isLiveTvSelected() {
+        return !items.isEmpty() && "Live TV".equals(items.get(sel).label);
     }
 
     private void paint() {
@@ -126,16 +154,21 @@ final class InputsMenu {
         Collections.sort(hdmi, (a, b) -> a.label.compareTo(b.label));
         items.addAll(hdmi);
         items.addAll(av);
-        Intent live = c.getPackageManager().getLeanbackLaunchIntentForPackage("com.android.tv");
-        if (live != null || tuner != null) {
-            Item it = new Item();
-            it.label = "Live TV";
-            it.connected = true;
-            it.intent = live != null ? live : new Intent(Intent.ACTION_VIEW,
-                    TvContract.buildChannelsUriForInput(tuner.getId()));
-            it.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            items.add(it);
+        Intent live = c.getPackageManager().getLeanbackLaunchIntentForPackage("com.nk.live_tv");
+        if (live == null) live = c.getPackageManager().getLaunchIntentForPackage("com.nk.live_tv");
+        if (live == null) live = c.getPackageManager().getLeanbackLaunchIntentForPackage("com.android.tv");
+        Item it = new Item();
+        it.label = "Live TV";
+        it.connected = true;
+        if (live != null) {
+            it.intent = live;
+        } else if (tuner != null) {
+            it.intent = new Intent(Intent.ACTION_VIEW, TvContract.buildChannelsUriForInput(tuner.getId()))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        } else {
+            it.intent = null;
         }
+        items.add(it);
         return items;
     }
 }

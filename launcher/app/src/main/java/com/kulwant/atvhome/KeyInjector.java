@@ -42,6 +42,7 @@ final class KeyInjector {
         KEYS.put("mute", "VOLUME_MUTE");
         KEYS.put("backspace", "DEL");
         KEYS.put("enter", "ENTER");
+        KEYS.put("power", "POWER");
     }
 
     // US keyboard: each character's Android key name; SHIFTED[i] is PLAIN[i] with Shift held

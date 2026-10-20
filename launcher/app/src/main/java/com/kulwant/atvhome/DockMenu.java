@@ -46,18 +46,36 @@ final class DockMenu {
         return panel.getVisibility() == View.VISIBLE;
     }
 
+    interface OnChoiceListener {
+        void onChoice(int choice);
+    }
+
+    private OnChoiceListener listener;
+
+    void setOnChoiceListener(OnChoiceListener l) {
+        this.listener = l;
+    }
+
     void open(int leftPx, int topPx, int widthDp, List<String> labels) {
         gen++;
         panel.animate().cancel();
         list.removeAllViews();
         rows.clear();
-        for (String label : labels) {
+        for (int i = 0; i < labels.size(); i++) {
+            final int idx = i;
+            String label = labels.get(i);
             TextView t = Ui.text(c, 400, 15, 0xFFFFFFFF);
             t.setText(label);
             t.setGravity(Gravity.CENTER_VERTICAL);
             t.setPadding(Ui.dp(c, 14), 0, Ui.dp(c, 14), 0);
             t.setSingleLine(true);
             t.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            t.setOnClickListener(v -> {
+                sel = idx;
+                paint();
+                close();
+                if (listener != null) listener.onChoice(idx);
+            });
             list.addView(t, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(c, 38)));
             rows.add(t);
