@@ -2,8 +2,12 @@ package com.kulwant.atvhome;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -19,15 +23,19 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Manages Islamic prayer times (Salat) and Hijri date.
- * Automatically discovers the TV's location (via system location or IP geolocation)
- * on startup and computes precise prayer times for that location.
+ * Manages Islamic prayer times (Salat) and Hijri date, for wherever the TV is: its own location
+ * (from nearby Wi-Fi on most TVs) or else its internet address. In Malaysia, JAKIM's official
+ * e-Solat times for the zone it is in; elsewhere, the local authority's method via Aladhan.
+ * A zone in config.xml (prayer_zone) overrides the location. Refreshed daily.
  * Formats in English (Fajr, Dhuhr, Asr, Maghrib, Isha) and displays only the active/upcoming prayer.
  */
 final class PrayerRepo {
@@ -94,7 +102,12 @@ final class PrayerRepo {
         long now = System.currentTimeMillis();
 
         boolean isTodayCached = todayKey.equals(cachedDate) && !sp.getString("fajr", "").isEmpty();
-        boolean needFetch = (!isTodayCached && (now - lastAttempt >= RETRY_INTERVAL_MS))
+        // prayer_zone in config.xml changed since the last fetch (a zone typed in, or cleared to
+        // follow the TV's location again), or the times came from a build that didn't record it:
+        // don't wait for the daily refresh
+        boolean zoneChanged = !sp.contains("zone_setting")
+                || !configuredZone(app).equals(sp.getString("zone_setting", ""));
+        boolean needFetch = ((!isTodayCached || zoneChanged) && (now - lastAttempt >= RETRY_INTERVAL_MS))
                 || (isTodayCached && (now - lastAttempt >= REFRESH_INTERVAL_MS));
 
         if (needFetch) {
@@ -206,117 +219,231 @@ final class PrayerRepo {
         return new PrayerData(hijri, formattedLine, formattedLine, isNow, fullSummary);
     }
 
+    /** The prayer_zone from config.xml (e.g. WLY01), or "" when it is empty or not a JAKIM zone code. */
+    static String configuredZone(Context context) {
+        return normaliseZone(context.getString(R.string.prayer_zone));
+    }
+
+    /** "wly01 " -> "WLY01"; anything that isn't three letters and two digits -> "". */
+    static String normaliseZone(String raw) {
+        String z = raw == null ? "" : raw.trim().toUpperCase(Locale.US);
+        return z.matches("[A-Z]{3}\\d{2}") ? z : "";
+    }
+
+    /** Where the TV is, as far as its prayer times go. */
+    private static final class Place {
+        double lat, lon;   // rounded to about 1 km before anything is sent: plenty for prayer times
+        String city = "", region = "", country = "", countryCode = "";
+        String source = "";
+    }
+
     private static void detectLocationAndFetch(Context context, String todayKey) {
         SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         sp.edit().putLong("last_attempt_at", System.currentTimeMillis()).apply();
 
-        double lat = sp.getFloat("lat", 0f);
-        double lon = sp.getFloat("lon", 0f);
-        String city = sp.getString("city", "");
-        String country = sp.getString("country", "");
-        String region = sp.getString("region", "");
-
-        // 1. Try system LocationManager
-        try {
-            LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-            if (lm != null) {
-                Location loc = lm.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-                if (loc == null) loc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                if (loc == null) loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                if (loc != null) {
-                    lat = loc.getLatitude();
-                    lon = loc.getLongitude();
-                }
+        // 1. A JAKIM zone typed into config.xml: only for a TV that can't tell where it is (a VPN,
+        // say). If e-Solat is down, keep the cached times and retry.
+        String configured = configuredZone(context);
+        if (!configured.isEmpty()) {
+            if (fetchFromJakim(context, configured, "", todayKey)) {
+                sp.edit().putString("zone_setting", configured).apply();
+                Log.i(TAG, "Prayer times updated for configured zone " + configured);
+            } else {
+                Log.w(TAG, "e-Solat fetch for " + configured + " failed, will retry in 15 minutes");
             }
-        } catch (SecurityException ignored) {}
-
-        // 2. If no system GPS/network location (common on Android TV), use IP Geolocation
-        if (lat == 0 && lon == 0) {
-            try {
-                String ipJson = httpGet("https://ipwho.is/", 7_000);
-                if (ipJson != null) {
-                    JSONObject obj = new JSONObject(ipJson);
-                    if (obj.optBoolean("success", false)) {
-                        lat = obj.optDouble("latitude", 0);
-                        lon = obj.optDouble("longitude", 0);
-                        city = obj.optString("city", city);
-                        country = obj.optString("country", country);
-                        region = obj.optString("region", region);
-                        Log.i(TAG, "Location detected via ipwho.is: " + city + ", " + region + ", " + country + " (" + lat + ", " + lon + ")");
-                    }
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "ipwho.is error: " + e.getMessage());
-            }
-
-            if (lat == 0 && lon == 0) {
-                try {
-                    String ipJson = httpGet("http://ip-api.com/json", 7_000);
-                    if (ipJson != null) {
-                        JSONObject obj = new JSONObject(ipJson);
-                        if ("success".equalsIgnoreCase(obj.optString("status"))) {
-                            lat = obj.optDouble("lat", 0);
-                            lon = obj.optDouble("lon", 0);
-                            city = obj.optString("city", city);
-                            country = obj.optString("country", country);
-                            region = obj.optString("regionName", region);
-                            Log.i(TAG, "Location detected via ip-api: " + city + ", " + region + ", " + country + " (" + lat + ", " + lon + ")");
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.w(TAG, "ip-api error: " + e.getMessage());
-                }
-            }
+            return;
+        }
+        if (!context.getString(R.string.prayer_zone).trim().isEmpty()) {
+            Log.w(TAG, "prayer_zone in config.xml is not a JAKIM zone code (like WLY01); using the TV's location");
         }
 
-        // Save detected coordinates and location names
-        sp.edit()
-                .putFloat("lat", (float) lat)
-                .putFloat("lon", (float) lon)
-                .putString("city", city)
-                .putString("country", country)
-                .putString("region", region)
-                .apply();
-
-        // 3. Fetch prayer times for this location
-        boolean fetched = false;
-
-        // If in Malaysia, resolve the exact JAKIM zone and fetch from official e-Solat
-        if ("Malaysia".equalsIgnoreCase(country) || lat != 0 && lon != 0 && (lon >= 99.0 && lon <= 120.0 && lat >= 0.8 && lat <= 7.5)) {
-            String zone = detectJakimZone(lat, lon, region, city);
-            if (!zone.isEmpty()) {
-                fetched = fetchFromJakim(context, zone, city, todayKey);
-            }
+        // 2. Where the TV is, found again on every refresh, so a TV that moves follows along
+        Place p = locate(context);
+        if (p == null) {
+            Log.w(TAG, "Couldn't tell where the TV is, will retry in 15 minutes");
+            return;   // the cached times stay up meanwhile
         }
+        sp.edit().putFloat("lat", (float) p.lat).putFloat("lon", (float) p.lon)
+                .putString("country", p.country).putString("region", p.region).apply();
 
-        // Fallback or outside Malaysia: fetch precisely from Aladhan API using coordinates
-        if (!fetched) {
-            fetched = fetchFromAladhan(context, lat, lon, city, country, todayKey);
+        // 3. In Malaysia: JAKIM's official times for the zone the TV is in. Should e-Solat be down,
+        // the same coordinates calculated with JAKIM's method, never another country's.
+        boolean fetched;
+        String[] zone = jakimZone(p);
+        if (zone != null) {
+            String label = zone[1] + " (" + zone[0] + ")";
+            fetched = fetchFromJakim(context, zone[0], label, todayKey)
+                    || fetchFromAladhan(context, p.lat, p.lon, label, ALADHAN_JAKIM, todayKey);
+            Log.i(TAG, "JAKIM zone " + zone[0] + " " + zone[1] + ", from " + p.source);
+        } else {
+            // 4. Elsewhere: the local authority's method for these coordinates (Aladhan picks it:
+            // MUIS in Singapore, Umm al-Qura in Saudi Arabia, the Muslim World League in Europe...)
+            fetched = fetchFromAladhan(context, p.lat, p.lon, p.city, 0, todayKey);
+            Log.i(TAG, "Outside Malaysia: " + p.city + ", " + p.country + ", from " + p.source);
         }
-
         if (fetched) {
-            Log.i(TAG, "Prayer times updated successfully for " + city + " (" + lat + ", " + lon + ")");
+            sp.edit().putString("zone_setting", "").apply();
         } else {
             Log.w(TAG, "Failed to update prayer times, will retry in 15 minutes");
         }
     }
 
-    private static String detectJakimZone(double lat, double lon, String region, String city) {
-        // First try solat.my detect API if coordinates are valid
-        if (lat != 0 && lon != 0) {
-            try {
-                String res = httpGet("https://solat.my/api/detect?latitude=" + lat + "&longitude=" + lon, 6_000);
-                if (res != null) {
-                    JSONObject obj = new JSONObject(res);
-                    String z = obj.optString("zone", "").trim();
-                    if (!z.isEmpty()) {
-                        Log.i(TAG, "Detected JAKIM zone from coordinates: " + z);
-                        return z;
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
+    /** Aladhan's number for JAKIM's calculation method. */
+    private static final int ALADHAN_JAKIM = 17;
 
+    /**
+     * Where the TV is. Its own location first: Android TVs work it out from the Wi-Fi networks
+     * around them, to within a street or so. Without that (location off, or no permission), the
+     * internet address, which gets the city right but can be a state off.
+     */
+    private static Place locate(Context c) {
+        Location loc = deviceLocation(c);
+        Place p;
+        if (loc != null) {
+            p = placeNames(c, loc.getLatitude(), loc.getLongitude());
+            p.lat = loc.getLatitude();
+            p.lon = loc.getLongitude();
+            p.source = "the TV's location";
+        } else {
+            p = ipPlace();
+            if (p == null) return null;
+            p.source = "its internet address";
+        }
+        p.lat = Math.round(p.lat * 100) / 100.0;
+        p.lon = Math.round(p.lon * 100) / 100.0;
+        return p;
+    }
+
+    /** The newest fix Android has, or a new one when that is over six hours old. */
+    @SuppressWarnings("MissingPermission")   // in the manifest, granted by build_and_install.sh
+    private static Location deviceLocation(Context c) {
+        LocationManager lm = c.getSystemService(LocationManager.class);
+        if (lm == null) return null;
+        Location best = null;
+        for (String provider : new String[]{"fused", LocationManager.NETWORK_PROVIDER,
+                LocationManager.GPS_PROVIDER, LocationManager.PASSIVE_PROVIDER}) {
+            try {
+                Location l = lm.getLastKnownLocation(provider);
+                if (l != null && (best == null || l.getTime() > best.getTime())) best = l;
+            } catch (RuntimeException ignored) {   // no such provider here, or no permission
+            }
+        }
+        if (best != null && System.currentTimeMillis() - best.getTime() < 6 * 3600_000L) return best;
+        Location fresh = currentLocation(lm);
+        return fresh != null ? fresh : best;   // even an old fix beats a guess from the address
+    }
+
+    /** A new fix from the network (Wi-Fi) provider, waiting up to 15 s; this runs on the io thread. */
+    @SuppressWarnings("MissingPermission")
+    private static Location currentLocation(LocationManager lm) {
+        if (Build.VERSION.SDK_INT < 30) return null;
+        CountDownLatch done = new CountDownLatch(1);
+        Location[] got = new Location[1];
+        CancellationSignal cancel = new CancellationSignal();
+        try {
+            lm.getCurrentLocation(LocationManager.NETWORK_PROVIDER, cancel, Runnable::run, l -> {
+                got[0] = l;
+                done.countDown();
+            });
+            if (!done.await(15, TimeUnit.SECONDS)) cancel.cancel();
+        } catch (Exception ignored) {   // provider off or missing, or no permission
+        }
+        return got[0];
+    }
+
+    /** City and country for a location: the TV's geocoder if it has one, else the address lookup. */
+    private static Place placeNames(Context c, double lat, double lon) {
+        if (Geocoder.isPresent()) {
+            try {
+                @SuppressWarnings("deprecation")   // the callback version needs Android 13
+                List<Address> found = new Geocoder(c, Locale.US).getFromLocation(lat, lon, 1);
+                if (found != null && !found.isEmpty()) {
+                    Address a = found.get(0);
+                    Place p = new Place();
+                    p.city = firstOf(a.getLocality(), a.getSubAdminArea(), a.getAdminArea());
+                    p.region = firstOf(a.getAdminArea());
+                    p.country = firstOf(a.getCountryName());
+                    p.countryCode = firstOf(a.getCountryCode());
+                    return p;
+                }
+            } catch (Exception ignored) {   // no geocoding service reachable
+            }
+        }
+        Place ip = ipPlace();
+        return ip != null ? ip : new Place();
+    }
+
+    private static String firstOf(String... values) {
+        for (String v : values) if (v != null && !v.isEmpty()) return v;
+        return "";
+    }
+
+    /** City, country and rough coordinates from the TV's internet address. */
+    private static Place ipPlace() {
+        try {
+            String res = httpGet("https://ipwho.is/", 7_000);
+            JSONObject o = res == null ? null : new JSONObject(res);
+            if (o != null && o.optBoolean("success", false)) {
+                Place p = new Place();
+                p.lat = o.optDouble("latitude", 0);
+                p.lon = o.optDouble("longitude", 0);
+                p.city = o.optString("city", "");
+                p.region = o.optString("region", "");
+                p.country = o.optString("country", "");
+                p.countryCode = o.optString("country_code", "");
+                return p;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "ipwho.is error: " + e.getMessage());
+        }
+        try {
+            String res = httpGet("http://ip-api.com/json", 7_000);
+            JSONObject o = res == null ? null : new JSONObject(res);
+            if (o != null && "success".equalsIgnoreCase(o.optString("status"))) {
+                Place p = new Place();
+                p.lat = o.optDouble("lat", 0);
+                p.lon = o.optDouble("lon", 0);
+                p.city = o.optString("city", "");
+                p.region = o.optString("regionName", "");
+                p.country = o.optString("country", "");
+                p.countryCode = o.optString("countryCode", "");
+                return p;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "ip-api error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * The JAKIM zone the TV is in, {code, name}, or null outside Malaysia. solat.my maps coordinates
+     * to zones; for places just across the border (Singapore, Batam, Brunei) it answers with the
+     * nearest zone and its distance, so only a match within 3 km counts. If solat.my can't be
+     * reached, a TV whose names say Malaysia gets its state's main zone.
+     */
+    private static String[] jakimZone(Place p) {
+        try {
+            String res = httpGet(String.format(Locale.US,
+                    "https://solat.my/api/detect?latitude=%.2f&longitude=%.2f", p.lat, p.lon), 8_000);
+            if (res != null) {
+                JSONObject o = new JSONObject(res);
+                String code = normaliseZone(o.optString("zone", ""));
+                if (code.isEmpty()) return null;   // "Location is outside Malaysia"
+                if (o.optDouble("distanceKm", 0) > 3) return null;
+                return new String[]{code, o.optString("name", code)};
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "solat.my error: " + e.getMessage());
+        }
+        if ("MY".equalsIgnoreCase(p.countryCode) || "Malaysia".equalsIgnoreCase(p.country)) {
+            String code = zoneFromPlaceName(p.region, p.city);
+            return new String[]{code, p.city.isEmpty() ? code : p.city};
+        }
+        return null;
+    }
+
+    /** A state's main zone from place names, for when solat.my can't be reached. */
+    private static String zoneFromPlaceName(String region, String city) {
         // Region / State heuristics
         String r = (region + " " + city).toLowerCase(Locale.US);
         if (r.contains("melaka") || r.contains("malacca")) return "MLK01";
@@ -378,23 +505,15 @@ final class PrayerRepo {
         }
     }
 
-    private static boolean fetchFromAladhan(Context context, double lat, double lon, String city, String country, String todayKey) {
+    /** Times calculated for the coordinates. method 0: Aladhan picks the local authority's method. */
+    private static boolean fetchFromAladhan(Context context, double lat, double lon, String city, int method, String todayKey) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy", Locale.US);
             String dateParam = sdf.format(new Date());
 
-            String urlString;
-            if (lat != 0 && lon != 0) {
-                urlString = String.format(Locale.US,
-                        "https://api.aladhan.com/v1/timings/%s?latitude=%f&longitude=%f&method=17",
-                        dateParam, lat, lon);
-            } else {
-                String c = !city.isEmpty() ? city : "Kuala Lumpur";
-                String co = !country.isEmpty() ? country : "Malaysia";
-                urlString = String.format(Locale.US,
-                        "https://api.aladhan.com/v1/timingsByCity/%s?city=%s&country=%s&method=17",
-                        dateParam, c, co);
-            }
+            String urlString = String.format(Locale.US,
+                    "https://api.aladhan.com/v1/timings/%s?latitude=%.2f&longitude=%.2f", dateParam, lat, lon)
+                    + (method > 0 ? "&method=" + method : "");
 
             String res = httpGet(urlString, 12_000);
             if (res == null) return false;
@@ -425,6 +544,7 @@ final class PrayerRepo {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .edit()
                     .putString("date", todayKey)
+                    .putString("zone", "")   // not a JAKIM zone's times
                     .putString("city", city)
                     .putString("hijri", hijriFormatted)
                     .putString("fajr", fajr)
@@ -452,7 +572,11 @@ final class PrayerRepo {
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android TV; ATVHome Launcher)");
             conn.setRequestProperty("Accept", "application/json");
 
-            if (conn.getResponseCode() != 200) return null;
+            int code = conn.getResponseCode();
+            if (code != 200) {
+                Log.w(TAG, "GET " + conn.getURL().getHost() + " answered HTTP " + code);
+                return null;
+            }
 
             StringBuilder sb = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
@@ -463,6 +587,10 @@ final class PrayerRepo {
             }
             return sb.toString();
         } catch (Exception e) {
+            // the innermost cause says why (e.g. which certificate check failed); the outer one rarely does
+            Throwable why = e;
+            while (why.getCause() != null) why = why.getCause();
+            Log.w(TAG, "GET " + urlStr.replaceFirst("\\?.*", "") + " failed: " + e + (why != e ? " <- " + why : ""));
             return null;
         } finally {
             if (conn != null) conn.disconnect();

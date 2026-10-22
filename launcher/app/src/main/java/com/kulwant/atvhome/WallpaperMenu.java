@@ -1,6 +1,7 @@
 package com.kulwant.atvhome;
 
 import android.content.Context;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +40,8 @@ final class WallpaperMenu {
     private final List<Action> actions = new ArrayList<>();
     private final List<View> rows = new ArrayList<>();
     private int sel;
+    private boolean open;   // false as soon as close() starts: keys go back to the screen during the fade
+    private long pressedAt;
 
     interface Callback {
         void onNext();
@@ -67,7 +70,7 @@ final class WallpaperMenu {
     }
 
     boolean isOpen() {
-        return panel.getVisibility() == View.VISIBLE;
+        return open;
     }
 
     void open(int leftPx, int topPx) {
@@ -115,14 +118,29 @@ final class WallpaperMenu {
         paint();
 
         panel.setVisibility(View.VISIBLE);
+        open = true;
         panel.setAlpha(0f);
         panel.setPivotY(0);
         panel.setScaleY(0.94f);
-        panel.animate().alpha(1f).scaleY(1f).setDuration(160).start();
+        panel.animate().alpha(1f).scaleY(1f).setStartDelay(0).setDuration(160).start();
+    }
+
+    /** OK on the selected row: it sinks and springs back like a pressed key. */
+    void pressSelected() {
+        if (sel < 0 || sel >= rows.size()) return;
+        pressedAt = SystemClock.uptimeMillis();
+        Ui.press(rows.get(sel), Ui.PRESS_SCALE_ROW);
+    }
+
+    /** Lets a row just pressed show its press before the menu fades out. */
+    private long pressShowing() {
+        long since = SystemClock.uptimeMillis() - pressedAt;
+        return since < Ui.PRESS_DOWN_MS ? Ui.PRESS_DOWN_MS - since : 0;
     }
 
     void close() {
-        panel.animate().alpha(0f).setDuration(110).withEndAction(() -> panel.setVisibility(View.GONE)).start();
+        open = false;
+        panel.animate().alpha(0f).setStartDelay(pressShowing()).setDuration(110).withEndAction(() -> panel.setVisibility(View.GONE)).start();
     }
 
     void move(int d) {
@@ -140,6 +158,7 @@ final class WallpaperMenu {
     void executeSelected() {
         if (sel >= 0 && sel < actions.size()) {
             Action a = actions.get(sel);
+            pressSelected();
             close();
             if (a.run != null) a.run.run();
         }
@@ -167,17 +186,17 @@ final class WallpaperMenu {
 
         actions.add(new Action((isBoth ? "✓ " : "   ") + "✨ Mix Both", "Rotate local photos & Unsplash", () -> {
             Wallpapers.setMode(c, Wallpapers.MODE_BOTH);
-            Toast.makeText(c, "Wallpaper: Mix Both", Toast.LENGTH_SHORT).show();
+            Ui.toast(c, "Wallpaper: Mix Both", Toast.LENGTH_SHORT);
         }));
 
         actions.add(new Action((isLocal ? "✓ " : "   ") + "📁 Local Only", "Rotate uploaded photos only", () -> {
             Wallpapers.setMode(c, Wallpapers.MODE_LOCAL);
-            Toast.makeText(c, "Wallpaper: Local Photos Only", Toast.LENGTH_SHORT).show();
+            Ui.toast(c, "Wallpaper: Local Photos Only", Toast.LENGTH_SHORT);
         }));
 
         actions.add(new Action((isUnsplash ? "✓ " : "   ") + "🌄 Unsplash 4K Only", "Rotate Unsplash wallpapers only", () -> {
             Wallpapers.setMode(c, Wallpapers.MODE_UNSPLASH);
-            Toast.makeText(c, "Wallpaper: Unsplash 4K Only", Toast.LENGTH_SHORT).show();
+            Ui.toast(c, "Wallpaper: Unsplash 4K Only", Toast.LENGTH_SHORT);
         }));
 
         // Curated Unsplash 4K Downloads
@@ -201,19 +220,21 @@ final class WallpaperMenu {
 
     private void addUnsplash(String title, String subtitle, String photoId) {
         actions.add(new Action("⬇ " + title, subtitle + " · Unsplash", () -> {
-            Toast.makeText(c, "Downloading 4K Wallpaper to TV...", Toast.LENGTH_SHORT).show();
+            Ui.toast(c, "Downloading 4K Wallpaper to TV...", Toast.LENGTH_SHORT);
             new Thread(() -> {
                 try {
                     String url = "https://images.unsplash.com/photo-" + photoId + "?w=1920&q=85";
                     File f = Wallpapers.downloadAndAdd(c, url);
+                    android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
                     if (f != null) {
-                        c.getMainLooper().getQueue(); // ensure main thread check
-                        android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
-                        main.post(() -> Toast.makeText(c, "✨ " + title + " set on TV!", Toast.LENGTH_SHORT).show());
+                        main.post(() -> Ui.toast(c, "✨ " + title + " set on TV!", Toast.LENGTH_SHORT));
+                    } else {
+                        main.post(() -> Ui.toast(c, "Album full (" + Wallpapers.MAX_PHOTOS
+                                + " photos): delete one first", Toast.LENGTH_LONG));
                     }
                 } catch (Exception e) {
                     android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
-                    main.post(() -> Toast.makeText(c, "Download failed: Check Wi-Fi", Toast.LENGTH_SHORT).show());
+                    main.post(() -> Ui.toast(c, "Download failed: Check Wi-Fi", Toast.LENGTH_SHORT));
                 }
             }, "unsplash-tv-download").start();
         }));
