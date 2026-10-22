@@ -420,7 +420,7 @@ Try it on the emulator first (Android Studio → **Television 1080p**), then on 
 ## 📜 Credits and licenses
 
 * **Original project:** [cleanyourtv](https://github.com/Gathin23/cleanyourtv) by [Gathin](https://github.com/Gathin23), MIT. The launcher, debloat scripts, tools and prompt started there. This edition builds on **Kulwant Nagi**'s version of it (MIT, see [LICENSE](LICENSE)).
-* **This edition:** [Akhter Husin](https://github.com/arakaneserohingya), for a Sharp AQUOS TV in Malaysia.
+* **This edition:** © 2026 [Akhter Husin](https://github.com/arakaneserohingya), for a Sharp AQUOS TV in Malaysia. MIT, like the rest; see [LICENSE](LICENSE).
 * **Live TV app:** fork of [kananinirav/Indian-IPTV-App](https://github.com/kananinirav/Indian-IPTV-App) (MIT). Channels from [iptv-org](https://github.com/iptv-org/iptv).
 * **AirPlay receiver:** [AirPlay Server](https://github.com/jqssun/android-airplay-server) by jqssun, based on UxPlay (GPL-3.0). A separate app, not part of the launcher.
 * **Prayer times:** [JAKIM e-Solat](https://www.e-solat.gov.my), [solat.my](https://solat.my) and [Aladhan](https://aladhan.com).
