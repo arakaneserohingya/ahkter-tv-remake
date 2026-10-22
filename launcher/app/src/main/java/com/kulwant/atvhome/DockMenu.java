@@ -1,6 +1,7 @@
 package com.kulwant.atvhome;
 
 import android.content.Context;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +26,8 @@ final class DockMenu {
     private final List<TextView> rows = new ArrayList<>();
     private int sel;
     private int gen;   // guards the close fade-out against a menu reopened in the meantime
+    private boolean open;   // false as soon as close() starts: keys go back to the tiles during the fade
+    private long pressedAt;
 
     DockMenu(Context c) {
         this.c = c;
@@ -43,7 +46,7 @@ final class DockMenu {
     }
 
     boolean isOpen() {
-        return panel.getVisibility() == View.VISIBLE;
+        return open;
     }
 
     interface OnChoiceListener {
@@ -62,6 +65,7 @@ final class DockMenu {
 
     void open(int leftPx, int topPx, int widthDp, String title, List<String> labels, int initialSel) {
         gen++;
+        open = true;
         panel.animate().cancel();
         list.removeAllViews();
         rows.clear();
@@ -117,12 +121,26 @@ final class DockMenu {
         panel.setAlpha(0f);
         panel.setPivotY(0);
         panel.setScaleY(0.94f);
-        panel.animate().alpha(1f).scaleY(1f).setDuration(160).start();
+        panel.animate().alpha(1f).scaleY(1f).setStartDelay(0).setDuration(160).start();
+    }
+
+    /** OK on the selected row: it sinks and springs back like a pressed key. */
+    void pressSelected() {
+        if (sel < 0 || sel >= rows.size()) return;
+        pressedAt = SystemClock.uptimeMillis();
+        Ui.press(rows.get(sel), Ui.PRESS_SCALE_ROW);
+    }
+
+    /** Lets a row just pressed show its press before the menu fades out. */
+    private long pressShowing() {
+        long since = SystemClock.uptimeMillis() - pressedAt;
+        return since < Ui.PRESS_DOWN_MS ? Ui.PRESS_DOWN_MS - since : 0;
     }
 
     void close() {
+        open = false;
         final int g = gen;
-        panel.animate().alpha(0f).setDuration(110)
+        panel.animate().alpha(0f).setStartDelay(pressShowing()).setDuration(110)
                 .withEndAction(() -> {
                     if (g == gen) panel.setVisibility(View.GONE);
                 }).start();

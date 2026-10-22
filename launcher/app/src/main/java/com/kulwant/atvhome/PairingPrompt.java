@@ -28,6 +28,7 @@ final class PairingPrompt {
     private Answer answer;
     private final TextView[] buttons = new TextView[2];
     private int focus;   // 0 = Don't allow, 1 = Allow
+    private boolean choosing;
 
     PairingPrompt(Context c) {
         this.c = c.getApplicationContext();
@@ -46,6 +47,7 @@ final class PairingPrompt {
     void show(String device, Answer a) {
         dismiss(false);
         answer = a;
+        choosing = false;
         root = new FrameLayout(c) {
             @Override
             public boolean dispatchKeyEvent(KeyEvent e) {
@@ -60,7 +62,7 @@ final class PairingPrompt {
                     case KeyEvent.KEYCODE_DPAD_CENTER:
                     case KeyEvent.KEYCODE_ENTER:
                     case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                        dismiss(focus == 1);
+                        choose(focus == 1);
                         return true;
                     case KeyEvent.KEYCODE_BACK:
                     case KeyEvent.KEYCODE_ESCAPE:
@@ -126,6 +128,17 @@ final class PairingPrompt {
     }
 
     /** Closes the prompt; a prompt closed without an answer counts as "Don't allow". */
+    /** OK on a button: it sinks like a pressed key, then the prompt answers. Held OK answers once. */
+    private void choose(boolean allowed) {
+        if (choosing || root == null) return;
+        choosing = true;
+        Ui.press(buttons[allowed ? 1 : 0], Ui.PRESS_SCALE_ROW);
+        final FrameLayout shown = root;
+        shown.postDelayed(() -> {
+            if (root == shown) dismiss(allowed);
+        }, Ui.scaled(Ui.PRESS_DOWN_MS + 60));
+    }
+
     void dismiss(boolean allowed) {
         if (root != null) {
             try {

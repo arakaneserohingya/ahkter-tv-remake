@@ -56,11 +56,11 @@ final class PhoneServer {
     private final Context c;
     private final SharedPreferences prefs;
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final ExecutorService pool = Executors.newFixedThreadPool(3);
+    // file transfers can hold a thread for minutes, so there are enough left for the remote itself
+    private final ExecutorService pool = Executors.newFixedThreadPool(8);
     private final SecureRandom rnd = new SecureRandom();
     private volatile ServerSocket server;
     private final KeyInjector keys;
-    private volatile boolean connecting;
 
     // pairing: a phone asks, the TV shows "Allow this phone…?" over whatever is on screen, and
     // someone in the room answers with the remote. Nothing to guess from the network. One request
@@ -129,9 +129,12 @@ final class PhoneServer {
         final Map<String, String> query = new HashMap<>();
         final Map<String, String> headers = new HashMap<>();
         byte[] body = new byte[0];
-        int length;
+        long length;
         String ip = "";
     }
+
+    /** Files sent from the phone page: any size, streamed to the TV's Download folder (SharedFiles). */
+    private static final String FILE_UPLOAD = "/api/files/upload";
 
     /** Routes anyone on the network may call (pairing, the page itself, PWA assets); their bodies are tiny. */
     private static final Set<String> OPEN = new HashSet<>(java.util.Arrays.asList(
@@ -148,6 +151,12 @@ final class PhoneServer {
             Req r = read(in);
             if (r == null) return;
             r.ip = sock.getInetAddress().getHostAddress();
+            if (FILE_UPLOAD.equals(r.path)) {
+                if (!hostIsIp(r)) send(out, 403, "text/plain", "use the TV's IP address".getBytes(StandardCharsets.UTF_8), null);
+                else if (!authorised(r)) json(out, 401, err("not paired"));
+                else receiveFile(r, in, out);
+                return;
+            }
             // decide whether this caller may send a body before allocating it: only paired phones
             // get the large limit (photo uploads), so nobody else can make the TV run out of memory
             int max = OPEN.contains(r.path) ? MAX_OPEN_BODY : authorised(r) ? MAX_BODY : 0;
@@ -185,7 +194,7 @@ final class PhoneServer {
             if (colon > 0) r.headers.put(h.substring(0, colon).trim().toLowerCase(Locale.US), h.substring(colon + 1).trim());
         }
         try {
-            r.length = Integer.parseInt(r.headers.getOrDefault("content-length", "0"));
+            r.length = Long.parseLong(r.headers.getOrDefault("content-length", "0"));
         } catch (NumberFormatException e) {
             return null;
         }
@@ -193,10 +202,10 @@ final class PhoneServer {
     }
 
     private static boolean readBody(InputStream in, Req r) throws Exception {
-        r.body = new byte[r.length];
+        r.body = new byte[(int) r.length];   // at most MAX_BODY: checked by handle()
         int off = 0;
-        while (off < r.length) {
-            int n = in.read(r.body, off, r.length - off);
+        while (off < r.body.length) {
+            int n = in.read(r.body, off, r.body.length - off);
             if (n < 0) return false;
             off += n;
         }
@@ -249,11 +258,16 @@ final class PhoneServer {
 
     // ---------------------------------------------------------------- routes
 
+    /**
+     * Only answer requests addressed to an IP, never to a hostname: stops a web page on some other
+     * site from reaching this server through the phone's browser (DNS rebinding).
+     */
+    private static boolean hostIsIp(Req r) {
+        return r.headers.getOrDefault("host", "").matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d+)?");
+    }
+
     private void route(Req r, OutputStream out) throws Exception {
-        // only answer requests addressed to an IP, never to a hostname: stops a web page on some
-        // other site from reaching this server through the phone's browser (DNS rebinding)
-        String host = r.headers.getOrDefault("host", "");
-        if (!host.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d+)?")) {
+        if (!hostIsIp(r)) {
             send(out, 403, "text/plain", "use the TV's IP address".getBytes(StandardCharsets.UTF_8), null);
             return;
         }
@@ -397,9 +411,119 @@ final class PhoneServer {
                     json(out, 404, err("POST required"));
                 }
                 return;
+            case "/api/files":
+                json(out, 200, SharedFiles.canAccess(c)
+                        ? ok().put("folder", "Download").put("free", SharedFiles.dir().getUsableSpace())
+                                .put("files", SharedFiles.list())
+                        : err(SharedFiles.NO_ACCESS));
+                return;
+            case "/api/files/get":
+                sendFile(out, SharedFiles.canAccess(c) ? SharedFiles.get(param(r, "name")) : null);
+                return;
+            case "/api/files/delete":
+                if (!"POST".equals(r.method)) {
+                    json(out, 404, err("POST required"));
+                    return;
+                }
+                File gone = SharedFiles.canAccess(c) ? SharedFiles.get(param(r, "name")) : null;
+                if (gone != null && gone.delete()) {
+                    SharedFiles.scan(c, gone);
+                    json(out, 200, ok());
+                } else {
+                    json(out, 200, err("not found"));
+                }
+                return;
+            case "/api/files/open":
+                if (!"POST".equals(r.method)) {
+                    json(out, 404, err("POST required"));
+                    return;
+                }
+                File toOpen = SharedFiles.canAccess(c) ? SharedFiles.get(param(r, "name")) : null;
+                String why = toOpen == null ? "not found" : SharedFiles.open(c, toOpen);
+                json(out, 200, why == null ? ok() : err(why));
+                return;
             default:
                 send(out, 404, "text/plain", "not found".getBytes(StandardCharsets.UTF_8), null);
         }
+    }
+
+    // ---------------------------------------------------------------- file sharing
+
+    /**
+     * A file sent from the phone page (?name=), any size: streamed into the Download folder under
+     * a hidden part name, which becomes the real name only once every byte has arrived.
+     */
+    private void receiveFile(Req r, InputStream in, OutputStream out) throws Exception {
+        if (!"POST".equals(r.method) || r.length <= 0) {
+            json(out, 400, err("send the file as the POST body, with its size"));
+            return;
+        }
+        if (!SharedFiles.canAccess(c)) {
+            json(out, 200, err(SharedFiles.NO_ACCESS));
+            return;
+        }
+        File dir = SharedFiles.dir();
+        dir.mkdirs();
+        long room = dir.getUsableSpace() - 100L * 1024 * 1024;   // leave the TV room to work
+        if (r.length > room) {
+            json(out, 200, err("not enough space on the TV: " + Math.max(0, room) / (1024 * 1024) + " MB free"));
+            return;
+        }
+        if ("100-continue".equalsIgnoreCase(r.headers.getOrDefault("expect", ""))) {   // curl, for big files
+            out.write("HTTP/1.1 100 Continue\r\n\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+        }
+        File part = new File(dir, ".upload-" + randomHex(8) + ".part");
+        try (OutputStream fo = new java.io.FileOutputStream(part)) {
+            byte[] buf = new byte[64 * 1024];
+            long left = r.length;
+            while (left > 0) {
+                int n = in.read(buf, 0, (int) Math.min(buf.length, left));
+                if (n < 0) throw new java.io.IOException("upload cut off");
+                fo.write(buf, 0, n);
+                left -= n;
+            }
+        } catch (Exception e) {
+            part.delete();
+            throw e;
+        }
+        File target;
+        synchronized (SharedFiles.class) {   // two files with the same name at once get different names
+            target = SharedFiles.freeTarget(param(r, "name"));
+            if (!part.renameTo(target)) {
+                part.delete();
+                json(out, 200, err("couldn't save the file on the TV"));
+                return;
+            }
+        }
+        SharedFiles.scan(c, target);
+        String name = target.getName();
+        runOnMain(() -> Ui.toast(c, "Received " + name, Toast.LENGTH_SHORT));
+        json(out, 200, ok().put("name", name).put("size", target.length()));
+    }
+
+    /** Streams a file to the phone or computer, which saves it under its own name. */
+    private static void sendFile(OutputStream out, File f) throws Exception {
+        if (f == null) {
+            send(out, 404, "text/plain", "not found".getBytes(StandardCharsets.UTF_8), null);
+            return;
+        }
+        String name = f.getName();
+        String plain = name.replaceAll("[^\\x20-\\x7e]|[\"\\\\]", "_");   // for browsers without filename*
+        String head = "HTTP/1.1 200 OK\r\n"
+                + "Content-Type: " + SharedFiles.mime(name) + "\r\n"
+                + "Content-Length: " + f.length() + "\r\n"
+                + "Content-Disposition: attachment; filename=\"" + plain + "\"; filename*=UTF-8''"
+                + java.net.URLEncoder.encode(name, "UTF-8").replace("+", "%20") + "\r\n"
+                + "Cache-Control: no-store\r\n"
+                + "Connection: close\r\n\r\n";
+        out.write(head.getBytes(StandardCharsets.US_ASCII));
+        try (InputStream in = new FileInputStream(f)) {
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        }
+        out.flush();
     }
 
     private static String param(Req r, String name) {
@@ -473,7 +597,7 @@ final class PhoneServer {
         tokens.add(q.token);
         prefs.edit().putStringSet("tokens", tokens).apply();
         q.state = 1;
-        Toast.makeText(c, "Phone paired", Toast.LENGTH_SHORT).show();
+        Ui.toast(c, "Phone paired", Toast.LENGTH_SHORT);
     }
 
     /** The phone polls this with the id it got; only that phone (same IP) can collect the token. */
@@ -508,18 +632,10 @@ final class PhoneServer {
 
     // ---------------------------------------------------------------- remote (trackpad, keyboard)
 
-    /** Ready, or starts connecting in the background (the first time the TV asks to allow it). */
+    /** Ready, or starts connecting in the background (the first time the TV asks to allow it). Never waits. */
     private JSONObject remoteStatus() throws Exception {
         if (keys.isConnected()) return ok().put("ready", true).put("layout", keys.describe());
-        if (!connecting) {
-            connecting = true;
-            Thread t = new Thread(() -> {
-                keys.ready();
-                connecting = false;
-            }, "adb-connect");
-            t.setDaemon(true);
-            t.start();
-        }
+        keys.connectInBackground();
         String e = keys.lastError();
         return ok().put("ready", false)
                 .put("message", e != null ? e : "Connecting… if the TV asks \"Allow USB debugging?\", tick Always allow and press OK");

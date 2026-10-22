@@ -5,6 +5,11 @@ import android.content.Context;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import dadb.AdbKeyPair;
 import dadb.AdbStream;
@@ -55,10 +60,24 @@ final class KeyInjector {
     private static final String SYMBOL_CHARS = "-=[];'`\\,./ ";
 
     private final Context c;
-    private Dadb adb;
+    private volatile Dadb adb;
     private volatile AdbStream shell;
     private String device;
-    private String lastError;
+    private volatile String lastError;
+
+    /**
+     * Connecting waits for as long as the TV shows "Allow USB debugging?", so it happens on this one
+     * thread only, never on the phone page's request threads and never holding the key lock: the
+     * page, pairing and file transfers keep working while the TV waits for an answer.
+     */
+    private static final ExecutorService CONNECTOR = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "adb-connect");
+        t.setDaemon(true);
+        return t;
+    });
+    private final AtomicBoolean connectQueued = new AtomicBoolean();
+    /** how long a key press waits for a reconnect (ADB restarted, TV woke up) before giving up */
+    private static final long RECONNECT_WAIT_MS = 3000;
     /** Android key name -> Linux code the remote can send (from its .kl file and capabilities). */
     private final Map<String, Integer> codes = new HashMap<>();
     private String layoutFile;
@@ -68,7 +87,8 @@ final class KeyInjector {
         this.c = c.getApplicationContext();
     }
 
-    synchronized boolean ready() {
+    /** Connects if needed. Runs on the connect thread only (see CONNECTOR). */
+    private boolean ready() {
         try {
             connect();
             return true;
@@ -77,6 +97,18 @@ final class KeyInjector {
             close();
             return false;
         }
+    }
+
+    /** Starts connecting, unless connected or already trying. Never waits. */
+    void connectInBackground() {
+        if (isConnected() || !connectQueued.compareAndSet(false, true)) return;
+        CONNECTOR.execute(() -> {
+            try {
+                ready();
+            } finally {
+                connectQueued.set(false);
+            }
+        });
     }
 
     boolean isConnected() {
@@ -92,7 +124,7 @@ final class KeyInjector {
         return sb.toString();
     }
 
-    synchronized String lastError() {
+    String lastError() {
         return lastError;
     }
 
@@ -201,16 +233,32 @@ final class KeyInjector {
     }
 
     private void run(String line) throws Exception {
-        connect();
         try {
-            shell.getSink().writeUtf8(line + "\n").flush();
+            send(line);
         } catch (Exception e) {
-            close();   // ADB restarted or the TV went to sleep: reconnect once
-            connect();
-            shell.getSink().writeUtf8(line + "\n").flush();
+            close();   // ADB restarted or the TV went to sleep: reconnect once, waiting only briefly
+            if (!reconnect()) throw new IllegalStateException("remote not connected");
+            send(line);
         }
     }
 
+    private void send(String line) throws Exception {
+        AdbStream s = shell;
+        if (s == null) throw new IllegalStateException("remote not connected");
+        s.getSink().writeUtf8(line + "\n").flush();
+    }
+
+    /** Reconnects on the connect thread; false if that takes longer than a key press should wait. */
+    private boolean reconnect() {
+        Future<Boolean> f = CONNECTOR.submit(this::ready);
+        try {
+            return f.get(RECONNECT_WAIT_MS, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            return false;   // still at it (the TV may be asking to allow it): it goes on in the background
+        }
+    }
+
+    /** Runs on the connect thread only, so attempts never overlap. */
     private void connect() throws Exception {
         if (shell != null) return;
         File priv = new File(c.getFilesDir(), "adbkey"), pub = new File(c.getFilesDir(), "adbkey.pub");
@@ -288,16 +336,18 @@ final class KeyInjector {
     }
 
     private void close() {
-        try {
-            if (shell != null) shell.close();
-        } catch (Exception ignored) {
-        }
-        try {
-            if (adb != null) adb.close();
-        } catch (Exception ignored) {
-        }
+        AdbStream s = shell;
+        Dadb d = adb;
         shell = null;
         adb = null;
+        try {
+            if (s != null) s.close();
+        } catch (Exception ignored) {
+        }
+        try {
+            if (d != null) d.close();
+        } catch (Exception ignored) {
+        }
     }
 
     private static String describe(Exception e) {

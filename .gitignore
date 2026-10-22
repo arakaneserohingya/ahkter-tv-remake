@@ -25,4 +25,7 @@ apps/live-tv/android/build/
 *.iml
 
 # Your own wallpapers (personal photos): put them in launcher/app/src/main/res/drawable-nodpi/
+# wallpaper_1 is the shared default every new install starts with, so it stays in git
 launcher/app/src/main/res/drawable-nodpi/wallpaper*
+!launcher/app/src/main/res/drawable-nodpi/wallpaper_1.jpg
+!launcher/app/src/main/res/drawable-nodpi/wallpaper_1_o.jpg

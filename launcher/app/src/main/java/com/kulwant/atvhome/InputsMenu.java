@@ -1,6 +1,7 @@
 package com.kulwant.atvhome;
 
 import android.content.Context;
+import android.os.SystemClock;
 import android.content.Intent;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
@@ -31,6 +32,8 @@ final class InputsMenu {
     private final List<Item> items = new ArrayList<>();
     private final List<TextView> rows = new ArrayList<>();
     private int sel;
+    private boolean open;   // false as soon as close() starts: keys go back to the screen during the fade
+    private long pressedAt;
 
     InputsMenu(Context c) {
         this.c = c;
@@ -45,7 +48,7 @@ final class InputsMenu {
     }
 
     boolean isOpen() {
-        return panel.getVisibility() == View.VISIBLE;
+        return open;
     }
 
     interface OnSelectListener {
@@ -76,7 +79,7 @@ final class InputsMenu {
                 close();
                 if ("Live TV".equals(it.label) && intent == null) {
                     LiveTvInstaller.checkAndInstall(c);
-                    android.widget.Toast.makeText(c, "Installing Live TV...", android.widget.Toast.LENGTH_SHORT).show();
+                    Ui.toast(c, "Installing Live TV...", android.widget.Toast.LENGTH_SHORT);
                     return;
                 }
                 if (listener != null && intent != null) listener.onSelect(intent);
@@ -92,14 +95,29 @@ final class InputsMenu {
         sel = 0;
         paint();
         panel.setVisibility(View.VISIBLE);
+        open = true;
         panel.setAlpha(0f);
         panel.setPivotY(0);
         panel.setScaleY(0.94f);
-        panel.animate().alpha(1f).scaleY(1f).setDuration(160).start();
+        panel.animate().alpha(1f).scaleY(1f).setStartDelay(0).setDuration(160).start();
+    }
+
+    /** OK on the selected row: it sinks and springs back like a pressed key. */
+    void pressSelected() {
+        if (sel < 0 || sel >= rows.size()) return;
+        pressedAt = SystemClock.uptimeMillis();
+        Ui.press(rows.get(sel), Ui.PRESS_SCALE_ROW);
+    }
+
+    /** Lets a row just pressed show its press before the menu fades out. */
+    private long pressShowing() {
+        long since = SystemClock.uptimeMillis() - pressedAt;
+        return since < Ui.PRESS_DOWN_MS ? Ui.PRESS_DOWN_MS - since : 0;
     }
 
     void close() {
-        panel.animate().alpha(0f).setDuration(110).withEndAction(() -> panel.setVisibility(View.GONE)).start();
+        open = false;
+        panel.animate().alpha(0f).setStartDelay(pressShowing()).setDuration(110).withEndAction(() -> panel.setVisibility(View.GONE)).start();
     }
 
     void move(int d) {

@@ -5,10 +5,12 @@ import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -32,6 +34,9 @@ final class Wallpapers {
     public static final String MODE_UNSPLASH = "unsplash";
 
     static final int MAX_PHOTOS = 60;
+    /** A 1920 px Unsplash JPEG is about 1 MB; same limit as a photo uploaded from the phone. */
+    static final int MAX_DOWNLOAD = 12 * 1024 * 1024;
+    private static final long DOWNLOAD_TIMEOUT_MS = 60_000;
     private static volatile Listener listener;
     private static final Handler main = new Handler(Looper.getMainLooper());
 
@@ -152,20 +157,46 @@ final class Wallpapers {
         return f;
     }
 
-    /** Downloads an image from an HTTP/HTTPS URL and adds it as an Unsplash wallpaper. */
-    static synchronized File downloadAndAdd(Context c, String imageUrl) throws Exception {
-        URL u = new URL(imageUrl);
-        HttpURLConnection conn = (HttpURLConnection) u.openConnection();
+    /**
+     * Downloads an Unsplash photo (https://images.unsplash.com only) and adds it as an Unsplash
+     * wallpaper; null if the album is full or it isn't an image. Not synchronized while downloading,
+     * so a slow server can't hold up the other photo actions.
+     */
+    static File downloadAndAdd(Context c, String imageUrl) throws Exception {
+        if (!isUnsplashImage(imageUrl)) throw new IllegalArgumentException("only images.unsplash.com links can be downloaded");
+        if (userPhotos(c).size() >= MAX_PHOTOS) return null;
+        HttpURLConnection conn = (HttpURLConnection) new URL(imageUrl).openConnection();
         conn.setConnectTimeout(12000);
         conn.setReadTimeout(15000);
         conn.setRequestProperty("User-Agent", "AkhterRubyTV/1.0");
-        try (InputStream in = conn.getInputStream();
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buf = new byte[16 * 1024];
-            int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            byte[] bytes = out.toByteArray();
-            return add(c, bytes, true);
+        try {
+            if (conn.getContentLengthLong() > MAX_DOWNLOAD) throw new IOException("image is too large");
+            long deadline = SystemClock.uptimeMillis() + DOWNLOAD_TIMEOUT_MS;
+            try (InputStream in = conn.getInputStream();
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buf = new byte[16 * 1024];
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    // the TV has about 1 GB of memory: never hold more than one big photo
+                    if (out.size() + n > MAX_DOWNLOAD) throw new IOException("image is too large");
+                    if (SystemClock.uptimeMillis() > deadline) throw new IOException("download is too slow");
+                    out.write(buf, 0, n);
+                }
+                return add(c, out.toByteArray(), true);
+            }
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    /** True only for https://images.unsplash.com/... (the phone page and TV menu build these). */
+    static boolean isUnsplashImage(String url) {
+        try {
+            URL u = new URL(url);
+            return "https".equals(u.getProtocol()) && "images.unsplash.com".equalsIgnoreCase(u.getHost())
+                    && (u.getPort() == -1 || u.getPort() == 443) && u.getUserInfo() == null;
+        } catch (Exception e) {
+            return false;
         }
     }
 

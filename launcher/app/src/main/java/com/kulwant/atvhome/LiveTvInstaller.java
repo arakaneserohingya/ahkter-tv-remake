@@ -23,17 +23,31 @@ import dadb.AdbKeyPair;
 import dadb.Dadb;
 
 /**
- * Ensures that the Indian Live TV companion app (com.nk.live_tv) is installed
- * whenever the launcher is installed or opened.
+ * Installs the bundled Live TV companion app (com.nk.live_tv): once on its own, the first time the
+ * launcher starts, and again only when someone picks Live TV in the Inputs menu.
  */
 public final class LiveTvInstaller {
     private static final String TAG = "LiveTvInstaller";
     public static final String LIVE_TV_PACKAGE = "com.nk.live_tv";
     private static final String ASSET_APK = "live-tv.apk";
+    private static final String PREFS = "live_tv";
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
     private static volatile boolean isInstalling = false;
 
     private LiveTvInstaller() {}
+
+    /**
+     * For launcher start: installs Live TV unless it has been on the TV before. Once it has, an
+     * uninstall is respected instead of quietly undone on the next start.
+     */
+    public static void installOnce(Context context) {
+        if (context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("was_installed", false)) return;
+        checkAndInstall(context);
+    }
+
+    private static void remember(Context context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("was_installed", true).apply();
+    }
 
     /** Checks whether Live TV is currently installed on the device. */
     public static boolean isInstalled(Context context) {
@@ -50,9 +64,11 @@ public final class LiveTvInstaller {
      * and installs it in the background via local Dadb or system PackageInstaller.
      */
     public static void checkAndInstall(Context context) {
-        if (isInstalled(context) || isInstalling) {
+        if (isInstalled(context)) {
+            remember(context);
             return;
         }
+        if (isInstalling) return;
 
         final Context appContext = context.getApplicationContext();
         executor.execute(() -> {
@@ -132,7 +148,8 @@ public final class LiveTvInstaller {
 
                 new Handler(Looper.getMainLooper()).post(() -> {
                     if (isInstalled(appContext)) {
-                        Toast.makeText(appContext, "Live TV installed", Toast.LENGTH_SHORT).show();
+                        remember(appContext);
+                        Ui.toast(appContext, "Live TV installed", Toast.LENGTH_SHORT);
                     }
                 });
 

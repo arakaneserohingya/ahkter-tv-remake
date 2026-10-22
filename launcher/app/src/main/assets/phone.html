@@ -842,6 +842,48 @@
   }
   .btn-primary:active { transform: scale(0.97); }
 
+  /* Files Tab */
+  .files-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 16px 4px 12px; }
+  .files-head h2 { font-size: 20px; margin: 0 0 4px; }
+  .files-head p { color: var(--text-dim); font-size: 13px; margin: 0; }
+  .files-head .btn-primary { width: auto; padding: 10px 18px; margin: 0; font-size: 14px; white-space: nowrap; }
+  .drop-zone {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    border: 1.5px dashed var(--border-bright); border-radius: var(--radius-lg);
+    padding: 18px; color: var(--text-dim); font-size: 14px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .drop-zone svg { width: 22px; height: 22px; flex: none; }
+  .drop-zone.over { border-color: var(--accent); background: rgba(10, 132, 255, 0.08); color: var(--text); }
+  .transfer { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; margin-top: 8px; }
+  .transfer .t-top { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+  .transfer .t-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .transfer .t-state { color: var(--text-dim); white-space: nowrap; }
+  .transfer .t-bar { height: 4px; border-radius: 2px; background: var(--border); margin-top: 8px; overflow: hidden; }
+  .transfer .t-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
+  .transfer.done .t-bar i { background: var(--green); }
+  .transfer.failed .t-bar i { background: var(--red); }
+  .file-list { margin-top: 14px; }
+  .file-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-top: 1px solid var(--border); }
+  .file-row:first-child { border-top: 0; }
+  .file-ico {
+    width: 40px; height: 40px; flex: none; border-radius: var(--radius-sm);
+    background: var(--surface-elevated); display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .file-meta { flex: 1; min-width: 0; }
+  .file-name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .file-actions { display: flex; gap: 6px; flex: none; }
+  .file-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; text-decoration: none; transition: transform 0.1s;
+  }
+  .file-btn:active { transform: scale(0.9); }
+  .file-btn svg { width: 17px; height: 17px; }
+  .file-btn.danger { color: var(--red); }
+  .files-empty { text-align: center; color: var(--text-dim); font-size: 14px; padding: 28px 12px; }
+
   /* Bottom Navigation Tabs */
   nav#tabs {
     position: fixed;
@@ -999,21 +1041,21 @@
   <section data-tab="remote">
     <div class="remote-chassis">
       
-      <!-- Nav Mode Switcher (Touchpad vs D-Pad) -->
+      <!-- Nav Mode Switcher: the D-Pad by default, the Touchpad for whoever picks it -->
       <div class="mode-switch">
-        <button class="mode-btn active" id="btnModeTouch">Touchpad</button>
-        <button class="mode-btn" id="btnModeDpad">D-Pad</button>
+        <button class="mode-btn active" id="btnModeDpad">D-Pad</button>
+        <button class="mode-btn" id="btnModeTouch">Touchpad</button>
       </div>
 
       <!-- Touchpad Surface -->
-      <div id="touchpad">
+      <div id="touchpad" class="hidden">
         <div class="dot" id="dot"></div>
         <svg class="arrow" id="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>
         <div class="hint">Swipe to navigate · Tap to select</div>
       </div>
 
       <!-- Apple TV D-Pad Surface -->
-      <div id="dpad">
+      <div id="dpad" class="visible">
         <button class="dpad-btn dpad-up" data-key="up" aria-label="Up">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
         </button>
@@ -1191,6 +1233,24 @@
     </div>
   </section>
 
+  <!-- Files Tab: send files to the TV, save the TV's files on this phone or computer -->
+  <section data-tab="files" class="hidden">
+    <div class="files-head">
+      <div>
+        <h2>Files</h2>
+        <p id="filesInfo">The TV's Download folder</p>
+      </div>
+      <button class="btn-primary" id="sendFiles">+ Send to TV</button>
+    </div>
+    <input type="file" id="filePick" multiple class="hidden">
+    <div class="drop-zone" id="dropZone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+      <span>Drop files here, or tap to choose</span>
+    </div>
+    <div id="transfers"></div>
+    <div class="file-list" id="fileList"></div>
+  </section>
+
   <!-- Siri & Shortcuts Tab -->
   <section data-tab="siri" class="hidden">
     <div class="card-box">
@@ -1226,6 +1286,10 @@
   <button class="nav-item" data-go="photos">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
     <span>Photos</span>
+  </button>
+  <button class="nav-item" data-go="files">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    <span>Files</span>
   </button>
   <button class="nav-item" data-go="siri">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
@@ -1356,31 +1420,32 @@ $("powerBtn").onclick = async () => {
 };
 
 // ------------------------------------------------------------ D-Pad vs Touchpad Switcher
+// The D-pad shows by default; the touchpad is there for whoever picks it, remembered on this phone.
 const btnTouch = $("btnModeTouch"), btnDpad = $("btnModeDpad");
 const viewTouch = $("touchpad"), viewDpad = $("dpad");
 
+function setNavMode(mode) {
+  const touch = mode === "touch";
+  btnTouch.classList.toggle("active", touch);
+  btnDpad.classList.toggle("active", !touch);
+  viewTouch.classList.toggle("hidden", !touch);
+  viewDpad.classList.toggle("visible", !touch);
+}
+
 btnTouch.onclick = () => {
   vibrate(10);
-  btnTouch.classList.add("active");
-  btnDpad.classList.remove("active");
-  viewTouch.classList.remove("hidden");
-  viewDpad.classList.remove("visible");
+  setNavMode("touch");
   try { localStorage.setItem("tvnavmode", "touch"); } catch (e) {}
 };
 
 btnDpad.onclick = () => {
   vibrate(10);
-  btnDpad.classList.add("active");
-  btnTouch.classList.remove("active");
-  viewDpad.classList.add("visible");
-  viewTouch.classList.add("hidden");
+  setNavMode("dpad");
   try { localStorage.setItem("tvnavmode", "dpad"); } catch (e) {}
 };
 
 try {
-  if (localStorage.getItem("tvnavmode") === "dpad") {
-    btnDpad.click();
-  }
+  if (localStorage.getItem("tvnavmode") === "touch") setNavMode("touch");
 } catch (e) {}
 
 // ------------------------------------------------------------ Remote State & Loading
@@ -1464,6 +1529,7 @@ function go(t) {
   document.querySelectorAll("[data-go]").forEach((b) => b.classList.toggle("active", b.dataset.go === t));
   window.scrollTo(0, 0);
   if (t === "remote") checkRemote();
+  if (t === "files") loadFiles();
 }
 document.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { vibrate(10); go(b.dataset.go); }));
 if ($("btnGoPhotos")) $("btnGoPhotos").onclick = () => { vibrate(10); go("photos"); };
@@ -2017,6 +2083,151 @@ if ($("installModal")) $("installModal").onclick = (e) => {
   if (e.target === $("installModal")) $("installModal").classList.add("hidden");
 };
 updateInstallUi(Boolean(deferredPrompt || isIos));
+
+// ------------------------------------------------------------ Files: send to the TV, save from the TV
+// The TV keeps them in its Download folder. Uploads stream the raw file (any size) with progress.
+const ICON_SAVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
+const ICON_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M10.5 8.5l4 2-4 2z"/></svg>';
+const ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+const FILE_ICONS = { image: "🖼", video: "🎬", audio: "🎵", apk: "📦", archive: "🗜", other: "📄" };
+let tvFree = Infinity;   // bytes free on the TV, from the last listing
+
+function fileKind(f) {
+  const t = f.type || "";
+  if (t === "application/vnd.android.package-archive") return "apk";
+  if (t.startsWith("image/")) return "image";
+  if (t.startsWith("video/")) return "video";
+  if (t.startsWith("audio/")) return "audio";
+  if (/zip|rar|7z|tar|gzip/.test(t)) return "archive";
+  return "other";
+}
+
+function fmtSize(n) {
+  if (n < 1024) return n + " B";
+  const units = ["KB", "MB", "GB", "TB"];
+  let i = -1;
+  do { n /= 1024; i++; } while (n >= 1024 && i < units.length - 1);
+  return (n < 10 ? n.toFixed(1) : Math.round(n)) + " " + units[i];
+}
+
+function fmtWhen(ms) {
+  const d = new Date(ms), time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (d.toDateString() === new Date().toDateString()) return "Today " + time;
+  return d.toLocaleDateString([], { day: "numeric", month: "short" }) + " " + time;
+}
+
+const postJson = (body) => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+async function loadFiles() {
+  let r;
+  try { r = await api("/api/files"); } catch (e) { return; }
+  const list = $("fileList");
+  list.innerHTML = "";
+  if (!r.ok) { $("filesInfo").textContent = r.error; return; }
+  tvFree = r.free;
+  $("filesInfo").textContent = "TV Download folder · " + fmtSize(r.free) + " free";
+  if (!r.files.length) {
+    list.innerHTML = '<div class="files-empty">No files on the TV yet. Send some from this device.</div>';
+    return;
+  }
+  for (const f of r.files) list.appendChild(fileRow(f));
+}
+
+function fileRow(f) {
+  const kind = fileKind(f);
+  const row = document.createElement("div");
+  row.className = "file-row";
+  row.innerHTML = '<div class="file-ico"></div><div class="file-meta"><div class="file-name"></div><div class="file-sub"></div></div>'
+    + '<div class="file-actions"><a class="file-btn" title="Save to this device">' + ICON_SAVE + '</a>'
+    + '<button class="file-btn" title="' + (kind === "apk" ? "Install on TV" : "Open on TV") + '">' + ICON_OPEN + '</button>'
+    + '<button class="file-btn danger" title="Delete from TV">' + ICON_DELETE + '</button></div>';
+  // names come from the TV's folder, where other apps save files too: text only, never HTML
+  row.querySelector(".file-ico").textContent = FILE_ICONS[kind];
+  row.querySelector(".file-name").textContent = f.name;
+  row.querySelector(".file-sub").textContent = fmtSize(f.size) + " · " + fmtWhen(f.modified);
+  const [save, open, del] = row.querySelectorAll(".file-btn");
+  save.href = withToken("/api/files/get?name=" + encodeURIComponent(f.name));
+  save.setAttribute("download", f.name);
+  save.onclick = () => { vibrate(10); toast("Saving " + f.name); };
+  open.onclick = async () => {
+    vibrate(10);
+    const r = await api("/api/files/open", postJson({ name: f.name }));
+    toast(r.ok ? (kind === "apk" ? "Installer opened on the TV" : "Opening on the TV") : r.error);
+  };
+  del.onclick = async () => {
+    if (!confirm('Delete "' + f.name + '" from the TV?')) return;
+    vibrate(15);
+    const r = await api("/api/files/delete", postJson({ name: f.name }));
+    toast(r.ok ? "Deleted" : r.error);
+    if (r.ok) loadFiles();
+  };
+  return row;
+}
+
+async function sendFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  vibrate(12);
+  let sent = 0;
+  for (const f of files) if (await sendOne(f)) sent++;
+  if (files.length > 1) toast(sent === files.length ? sent + " files sent to the TV" : (files.length - sent) + " of " + files.length + " not sent");
+  loadFiles();
+}
+
+/** One file, with a progress bar. The space check comes first: the TV can only refuse a big file once it is on its way. */
+function sendOne(file) {
+  return new Promise((resolve) => {
+    const t = document.createElement("div");
+    t.className = "transfer";
+    t.innerHTML = '<div class="t-top"><span class="t-name"></span><span class="t-state"></span></div><div class="t-bar"><i></i></div>';
+    t.querySelector(".t-name").textContent = file.name;
+    const state = t.querySelector(".t-state"), bar = t.querySelector(".t-bar i");
+    $("transfers").prepend(t);
+    const finish = (ok, msg) => {
+      t.classList.add(ok ? "done" : "failed");
+      bar.style.width = "100%";
+      state.textContent = msg;
+      setTimeout(() => t.remove(), ok ? 4000 : 12000);
+      resolve(ok);
+    };
+    if (file.size > tvFree - 100 * 1024 * 1024) return finish(false, "Not enough space on the TV");
+    const started = Date.now();
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/files/upload?name=" + encodeURIComponent(file.name));
+    xhr.setRequestHeader("X-Token", token);
+    state.textContent = "Sending… " + fmtSize(file.size);
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      bar.style.width = (100 * e.loaded / e.total).toFixed(1) + "%";
+      const secs = (Date.now() - started) / 1000;
+      state.textContent = fmtSize(e.loaded) + " of " + fmtSize(e.total) + (secs > 1 ? " · " + fmtSize(e.loaded / secs) + "/s" : "");
+    };
+    xhr.onload = () => {
+      if (xhr.status === 401) { forget(); return finish(false, "Not paired"); }
+      let r = {};
+      try { r = JSON.parse(xhr.responseText); } catch (e) {}
+      finish(Boolean(r.ok), r.ok ? "Sent ✓" : (r.error || "Not sent"));
+    };
+    xhr.onerror = () => finish(false, "Connection lost");
+    xhr.send(file);
+  });
+}
+
+$("sendFiles").onclick = () => { vibrate(10); $("filePick").click(); };
+$("dropZone").onclick = () => $("filePick").click();
+$("filePick").onchange = (e) => { sendFiles(e.target.files); e.target.value = ""; };
+// computers: drop files anywhere on the Files tab
+["dragenter", "dragover"].forEach((ev) => document.addEventListener(ev, (e) => {
+  if (tab !== "files") return;
+  e.preventDefault();
+  $("dropZone").classList.add("over");
+}));
+["dragleave", "drop"].forEach((ev) => document.addEventListener(ev, (e) => {
+  if (tab !== "files") return;
+  e.preventDefault();
+  $("dropZone").classList.remove("over");
+  if (ev === "drop" && e.dataTransfer) sendFiles(e.dataTransfer.files);
+}));
 
 // ------------------------------------------------------------ Boot
 if (token) load(); else show("pair");

@@ -27,6 +27,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
@@ -59,6 +60,9 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private static final int PILLS = 5;
     /** apps per row, dock and grid (config.xml: columns) */
     private int COLS;
+
+    /** Home is the resumed activity: Android only shows the launcher's own toasts then (Ui.toast) */
+    static volatile boolean resumed;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -93,8 +97,11 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     private int menuMode = MENU_NONE;
     private int menuDockIdx, menuGridIdx;
     private List<AppRepo.App> pickerApps;
-    private static final long LONG_PRESS_MS = 550;
-    private boolean pendingSelect, longFired;
+    /** how long OK is held to open a tile's menu: the system's long-press time (400 ms on TVs) */
+    private static final long LONG_PRESS_MS = ViewConfiguration.getLongPressTimeout();
+    /** down time of the OK press on a tile being followed, or -1. Its repeats and release share it. */
+    private long selectDownTime = -1;
+    private boolean longFired;
 
     private Zone zone = Zone.DOCK;
     private int topIdx, dockIdx, gridIdx;
@@ -156,12 +163,13 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
 
         Wallpapers.setListener(this);
         startForegroundService(new Intent(this, PhoneService.class));
-        LiveTvInstaller.checkAndInstall(this);
+        LiveTvInstaller.installOnce(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         updateClock();
         updateWifi();
         updatePrayerTimes();
@@ -177,12 +185,18 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
 
     @Override
     protected void onPause() {
+        resumed = false;
         // nothing ticks (and no wallpaper is decoded) while an app is in front
         main.removeCallbacks(minuteTick);
         main.removeCallbacks(nextWallpaper);
         main.removeCallbacks(refreshSubs);
         main.removeCallbacks(longPress);
-        pendingSelect = false;
+        selectDownTime = -1;
+        if (pressedView != null) {   // OK opened an app before it came up: come back unpressed
+            Ui.resetPress(pressedView);
+            Ui.resetPress(highlight);
+            pressedView = null;
+        }
         super.onPause();
     }
 
@@ -384,7 +398,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         tl.addView(prayerText, prlp);
         tl.setOnClickListener(v -> {
             if (prayerSummary != null && !prayerSummary.isEmpty()) {
-                Toast.makeText(this, prayerSummary, Toast.LENGTH_LONG).show();
+                Ui.toast(this, prayerSummary, Toast.LENGTH_LONG);
             } else {
                 zone = Zone.DOCK;
                 applyFocus(true);
@@ -514,7 +528,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                 if (cur instanceof java.io.File) {
                     String name = ((java.io.File) cur).getName().replace(".jpg", "");
                     Wallpapers.delete(HomeActivity.this, name);
-                    Toast.makeText(HomeActivity.this, "Wallpaper removed", Toast.LENGTH_SHORT).show();
+                    Ui.toast(HomeActivity.this, "Wallpaper removed", Toast.LENGTH_SHORT);
                 }
             }
         });
@@ -851,6 +865,8 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         if (k == KeyEvent.KEYCODE_MENU && (zone == Zone.DOCK || zone == Zone.GRID)
                 && !inputs.isOpen() && !(wallpaperMenu != null && wallpaperMenu.isOpen()) && !dockMenu.isOpen()) {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
+                pressFocused();
+                releasePress();
                 openTileMenu();
             }
             return true;
@@ -859,46 +875,54 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         boolean select = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER
                 || k == KeyEvent.KEYCODE_NUMPAD_ENTER;
 
-        // On a dock/grid tile, OK launches on release; holding OK opens the tile's edit menu.
+        // On a dock/grid tile, OK launches on release; holding OK opens the tile's edit menu. Only the
+        // repeats and release of the press that began on the tile count (same down time): the end of
+        // a press that chose a menu item must not reopen the menu or launch the tile behind it.
+        // Held time decides, not FLAG_LONG_PRESS: remotes that repeat by themselves set that flag on
+        // their first repeat, which can come after a normal-length press.
         if (select && !inputs.isOpen() && !(wallpaperMenu != null && wallpaperMenu.isOpen()) && !dockMenu.isOpen()
                 && (zone == Zone.DOCK || zone == Zone.GRID)) {
             if (e.getAction() == KeyEvent.ACTION_DOWN) {
-                if (e.isLongPress() || (e.getFlags() & KeyEvent.FLAG_LONG_PRESS) != 0
-                        || (e.getRepeatCount() > 0 && e.getEventTime() - e.getDownTime() >= LONG_PRESS_MS)) {
-                    main.removeCallbacks(longPress);
-                    longPress.run();
-                    return true;
-                }
                 if (e.getRepeatCount() == 0) {
-                    pendingSelect = true;
+                    selectDownTime = e.getDownTime();
                     longFired = false;
+                    pressFocused();
+                    main.removeCallbacks(longPress);
                     main.postDelayed(longPress, LONG_PRESS_MS);
+                } else if (e.getDownTime() == selectDownTime && e.getEventTime() - e.getDownTime() >= LONG_PRESS_MS) {
+                    main.removeCallbacks(longPress);   // a busy main thread can delay the timer
+                    longPress.run();
                 }
                 return true;
             }
-            if (e.getAction() == KeyEvent.ACTION_UP) {
-                if (pendingSelect) {
-                    pendingSelect = false;
-                    main.removeCallbacks(longPress);
-                    if (!longFired) activate();
-                }
-                return true;
+            if (e.getAction() == KeyEvent.ACTION_UP && e.getDownTime() == selectDownTime) {
+                selectDownTime = -1;
+                main.removeCallbacks(longPress);
+                releasePress();
+                if (!longFired) activate();
             }
             return true;
         }
 
+        if (select && e.getAction() == KeyEvent.ACTION_UP) releasePress();   // a top-bar button
         if (e.getAction() != KeyEvent.ACTION_DOWN) return true;
 
+        // in these two menus, repeats of a held OK (the press that opened the menu, or one choosing
+        // a row) are ignored like in the dock menu: they used to count as "close", so a slightly
+        // long press opened the menu and shut it again
         if (inputs.isOpen()) {
             if (k == KeyEvent.KEYCODE_DPAD_UP) inputs.move(-1);
             else if (k == KeyEvent.KEYCODE_DPAD_DOWN) inputs.move(1);
-            else if (select && e.getRepeatCount() == 0) {
-                Intent i = inputs.selected();
-                inputs.close();
-                if (i != null) launch(i);
-                else if (inputs.isLiveTvSelected()) {
-                    LiveTvInstaller.checkAndInstall(this);
-                    Toast.makeText(this, "Installing Live TV...", Toast.LENGTH_SHORT).show();
+            else if (select) {
+                if (e.getRepeatCount() == 0) {
+                    inputs.pressSelected();
+                    Intent i = inputs.selected();
+                    inputs.close();
+                    if (i != null) launch(i);
+                    else if (inputs.isLiveTvSelected()) {
+                        LiveTvInstaller.checkAndInstall(this);
+                        Ui.toast(this, "Installing Live TV...", Toast.LENGTH_SHORT);
+                    }
                 }
             } else inputs.close();   // back, left, right
             return true;
@@ -906,8 +930,8 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         if (wallpaperMenu.isOpen()) {
             if (k == KeyEvent.KEYCODE_DPAD_UP) wallpaperMenu.move(-1);
             else if (k == KeyEvent.KEYCODE_DPAD_DOWN) wallpaperMenu.move(1);
-            else if (select && e.getRepeatCount() == 0) {
-                wallpaperMenu.executeSelected();
+            else if (select) {
+                if (e.getRepeatCount() == 0) wallpaperMenu.executeSelected();
             } else wallpaperMenu.close();
             return true;
         }
@@ -922,6 +946,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                 // repeats of the held OK that opened this menu must not close it again
                 if (e.getRepeatCount() == 0) {
                     int choice = dockMenu.selectedIndex();
+                    dockMenu.pressSelected();
                     onDockMenuChoice(choice);
                 }
             } else if (k == KeyEvent.KEYCODE_BACK) {
@@ -950,7 +975,10 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                 }
                 break;
             default:
-                if (e.getRepeatCount() == 0) activate();
+                if (e.getRepeatCount() == 0) {
+                    if (select) pressFocused();
+                    activate();
+                }
         }
         return true;
     }
@@ -1031,17 +1059,53 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         if (intent != null) {
             launch(intent);
         } else {
-            Toast.makeText(this, "AirPlay receiver is not installed", Toast.LENGTH_SHORT).show();
+            Ui.toast(this, "AirPlay receiver is not installed", Toast.LENGTH_SHORT);
         }
     }
 
     // ---------------------------------------------------------------- dock editing
 
     private final Runnable longPress = () -> {
-        if (!pendingSelect) return;
+        if (selectDownTime < 0 || longFired) return;
         longFired = true;   // the coming key release must not launch the app
+        releasePress();     // the tile comes back up as its menu opens
         openTileMenu();
     };
+
+    // ---------------------------------------------------------------- press feedback
+
+    /** The tile or top-bar button OK is holding down; it sinks with the glass highlight around it. */
+    private View pressedView;
+
+    private void pressFocused() {
+        releasePress();
+        View v = focusedPressable();
+        if (v == null) return;
+        pressedView = v;
+        highlight.setPivotX(hl.centerX());
+        highlight.setPivotY(hl.centerY());
+        Ui.pressDown(v, Ui.PRESS_SCALE);
+        Ui.pressDown(highlight, Ui.PRESS_SCALE);
+    }
+
+    private void releasePress() {
+        if (pressedView == null) return;
+        Ui.release(pressedView);
+        Ui.release(highlight);
+        pressedView = null;
+    }
+
+    /** What sinks for the focused element: a top-bar button, or a whole tile around its banner's centre. */
+    private View focusedPressable() {
+        if (zone == Zone.TOP) return pills[topIdx];
+        RecyclerView rv = zone == Zone.DOCK ? dockRv : gridRv;
+        RecyclerView.ViewHolder vh = rv.findViewHolderForAdapterPosition(zone == Zone.DOCK ? dockIdx : gridIdx);
+        if (vh == null) return null;
+        View card = vh.itemView.findViewById(R.id.card);
+        vh.itemView.setPivotX(vh.itemView.getWidth() / 2f);
+        vh.itemView.setPivotY(card.getTop() + card.getHeight() / 2f);
+        return vh.itemView;
+    }
 
     /** The user's dock list: prefs once edited on the TV, otherwise the config.xml seed. */
     private List<String> dockPrefs() {
@@ -1110,54 +1174,56 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     }
 
     private void reorderMove(int delta) {
-        List<String> pkgs = dockPrefs();
-        if (menuDockIdx < 0 || menuDockIdx >= pkgs.size()) return;
-        int target = menuDockIdx + delta;
-        if (target < 0 || target >= pkgs.size()) return;
-        Collections.swap(pkgs, menuDockIdx, target);
-        if (menuDockIdx < dockAdapter.apps.size() && target < dockAdapter.apps.size()) {
-            Collections.swap(dockAdapter.apps, menuDockIdx, target);
-            dockAdapter.notifyItemMoved(menuDockIdx, target);
-        }
+        reorderMoveTo(menuDockIdx + delta);
+    }
+
+    /** Moves the dock tile being reordered to another position in the dock as shown. */
+    private void reorderMoveTo(int target) {
+        int n = dockAdapter.apps.size();
+        if (menuDockIdx < 0 || menuDockIdx >= n || target < 0 || target >= n || target == menuDockIdx) return;
+        AppRepo.App a = dockAdapter.apps.remove(menuDockIdx);
+        dockAdapter.apps.add(target, a);
+        dockAdapter.notifyItemMoved(menuDockIdx, target);
         dockIdx = target;
         menuDockIdx = target;
-        saveDock(pkgs, false);
+        saveDockOrder();
         dockRv.post(() -> {
             applyFocus(false);
             openReorderMenu();
         });
     }
 
-    private void reorderMoveTo(int target) {
+    /**
+     * Saves the dock in the order shown. The saved list can also name apps that aren't on this TV
+     * (config.xml's first-run list, an app Play Protect blocked), which the dock leaves out: they
+     * keep their places, and the apps shown fill the other places in their new order. Positions in
+     * the dock as shown are not positions in the saved list.
+     */
+    private void saveDockOrder() {
         List<String> pkgs = dockPrefs();
-        if (menuDockIdx < 0 || menuDockIdx >= pkgs.size()) return;
-        if (target < 0 || target >= pkgs.size() || target == menuDockIdx) return;
-        String pkg = pkgs.remove(menuDockIdx);
-        pkgs.add(target, pkg);
-        if (menuDockIdx < dockAdapter.apps.size() && target < dockAdapter.apps.size()) {
-            AppRepo.App a = dockAdapter.apps.remove(menuDockIdx);
-            dockAdapter.apps.add(target, a);
-            dockAdapter.notifyItemMoved(menuDockIdx, target);
+        List<String> shown = new ArrayList<>();
+        List<Integer> places = new ArrayList<>();
+        for (AppRepo.App a : dockAdapter.apps) {
+            int at = pkgs.indexOf(a.pkg);
+            if (at < 0) continue;
+            shown.add(a.pkg);
+            places.add(at);
         }
-        dockIdx = target;
-        menuDockIdx = target;
+        Collections.sort(places);
+        for (int i = 0; i < shown.size(); i++) pkgs.set(places.get(i), shown.get(i));
         saveDock(pkgs, false);
-        dockRv.post(() -> {
-            applyFocus(false);
-            openReorderMenu();
-        });
     }
 
     private void requestUninstall(AppRepo.App app) {
         if (app == null) return;
         if (getPackageName().equals(app.pkg)) {
-            Toast.makeText(this, "Cannot uninstall home launcher", Toast.LENGTH_SHORT).show();
+            Ui.toast(this, "Cannot uninstall home launcher", Toast.LENGTH_SHORT);
             return;
         }
         try {
             ApplicationInfo ai = getPackageManager().getApplicationInfo(app.pkg, 0);
             if ((ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
-                Toast.makeText(this, app.label + " is a system app and cannot be uninstalled", Toast.LENGTH_SHORT).show();
+                Ui.toast(this, app.label + " is a system app and cannot be uninstalled", Toast.LENGTH_SHORT);
                 return;
             }
         } catch (PackageManager.NameNotFoundException ignored) {
@@ -1168,7 +1234,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         } catch (Exception e) {
-            Toast.makeText(this, "Failed to uninstall " + app.label, Toast.LENGTH_SHORT).show();
+            Ui.toast(this, "Failed to uninstall " + app.label, Toast.LENGTH_SHORT);
         }
     }
 
@@ -1182,11 +1248,15 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
         int ph = Math.min(rows * dp(38) + headerH + dp(12), (int) (H * 0.65f));
         int x = side, y = dp(120);
         if (vh != null) {
+            // where the tile sits at rest: a long press opens the menu while the tile is still sunk
+            View item = vh.itemView;
             int[] loc = new int[2];
-            vh.itemView.getLocationInWindow(loc);
-            x = loc[0];
-            y = loc[1] + vh.itemView.getHeight() + dp(8);
-            if (y + ph > H - dp(12)) y = loc[1] - ph - dp(8);
+            rv.getLocationInWindow(loc);
+            int left = loc[0] + Math.round(item.getLeft() + item.getTranslationX());
+            int top = loc[1] + Math.round(item.getTop() + item.getTranslationY());
+            x = left;
+            y = top + item.getHeight() + dp(8);
+            if (y + ph > H - dp(12)) y = top - ph - dp(8);
         }
         x = Math.max(dp(12), Math.min(x, W - pw - dp(12)));
         y = Math.max(dp(12), y);
@@ -1211,12 +1281,11 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                 case 1: // Remove from dock
                     dockMenu.close();
                     menuMode = MENU_NONE;
-                    if (menuDockIdx < pkgs.size()) {
-                        pkgs.remove(menuDockIdx);
+                    if (pkgs.remove(app.pkg)) {
                         saveDock(pkgs);
-                        dockIdx = Math.max(0, Math.min(menuDockIdx, pkgs.size() - 1));
+                        dockIdx = Math.max(0, Math.min(menuDockIdx, dockAdapter.getItemCount() - 2));
                         applyFocus(true);
-                        Toast.makeText(this, app.label + " removed from dock", Toast.LENGTH_SHORT).show();
+                        Ui.toast(this, app.label + " removed from dock", Toast.LENGTH_SHORT);
                     }
                     break;
                 case 2: // Reorder
@@ -1231,7 +1300,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                         int[] an = tileAnchor(300, labels.size(), true);
                         dockMenu.open(an[0], an[1], 300, "Replace " + app.label, labels, 0);
                     } else {
-                        Toast.makeText(this, "No apps available to replace", Toast.LENGTH_SHORT).show();
+                        Ui.toast(this, "No apps available to replace", Toast.LENGTH_SHORT);
                         dockMenu.close();
                         menuMode = MENU_NONE;
                     }
@@ -1264,10 +1333,10 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                     menuMode = MENU_NONE;
                     if (!pkgs.contains(app.pkg)) {
                         pkgs.add(app.pkg);
-                        dockIdx = pkgs.size() - 1;
+                        dockIdx = dockAdapter.getItemCount();   // the new last tile
                         zone = Zone.DOCK;
                         saveDock(pkgs);
-                        Toast.makeText(this, app.label + " added to dock", Toast.LENGTH_SHORT).show();
+                        Ui.toast(this, app.label + " added to dock", Toast.LENGTH_SHORT);
                     }
                     break;
                 case 2: // Uninstall
@@ -1292,7 +1361,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
                     reorderMoveTo(0);
                     break;
                 case 3: // Move to Last
-                    reorderMoveTo(pkgs.size() - 1);
+                    reorderMoveTo(dockAdapter.apps.size() - 1);
                     break;
                 case 4: // Done
                 default:
@@ -1302,8 +1371,10 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
             }
         } else if (menuMode == MENU_PICKER) {
             dockMenu.close();
-            if (pickerApps != null && i >= 0 && i < pickerApps.size() && menuDockIdx < pkgs.size()) {
-                pkgs.set(menuDockIdx, pickerApps.get(i).pkg);
+            int at = menuDockIdx >= 0 && menuDockIdx < dockAdapter.apps.size()
+                    ? pkgs.indexOf(dockAdapter.apps.get(menuDockIdx).pkg) : -1;
+            if (pickerApps != null && i >= 0 && i < pickerApps.size() && at >= 0) {
+                pkgs.set(at, pickerApps.get(i).pkg);
                 saveDock(pkgs);
             }
             menuMode = MENU_NONE;
@@ -1321,6 +1392,7 @@ public class HomeActivity extends Activity implements Wallpapers.Listener {
     // ---------------------------------------------------------------- focus rendering
 
     private void applyFocus(boolean animate) {
+        releasePress();
         prefs.edit().putInt("zone", zone.ordinal()).putInt("top", topIdx)
                 .putInt("dock", dockIdx).putInt("grid", gridIdx).apply();
 

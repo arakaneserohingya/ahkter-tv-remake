@@ -190,7 +190,7 @@ class _PlayerState extends State<Player> {
                         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     Text('OK to retry  ·  ▲ ▼ for another channel',
-                        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13)),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
                   ]),
                 ),
               AnimatedOpacity(
@@ -234,12 +234,12 @@ class _PlayerState extends State<Player> {
                 Text(
                   '${channel.category}  ·  ${index + 1} of ${widget.channels.length}  ·  1080p'
                   '${streamIdx > 0 ? '  ·  backup stream ${streamIdx + 1}' : ''}',
-                  style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 13),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 13),
                 ),
               ],
             ),
           ),
-          Text('▲ ▼  change channel', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+          Text('▲ ▼  change channel', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
         ],
       ),
     );
