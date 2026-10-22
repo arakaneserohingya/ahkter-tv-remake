@@ -1,363 +1,430 @@
 # Android TV Makeover: Akhter & Ruby TV Edition
 
-A beginner-friendly, complete guide to transforming your Google TV or Android TV into a clean, modern Apple TV–inspired setup.
+Turn a slow, ad-filled Google TV / Android TV into a clean, Apple TV–style home screen, and get a remote for every phone and computer in the house.
 
-Replaces slow, ad-heavy stock launchers with an ultra-clean, ad-free interface, adds native **AirPlay** and **Samsung Smart View (Miracast)** screen mirroring, **Islamic prayer times & Hijri calendar**, **live social media subscriber counters**, a **zero-latency phone remote**, and a **1080p Live TV streaming app**.
+**This edition adds:** Islamic prayer times for wherever the TV is (official **JAKIM** times in Malaysia), a Hijri date, a phone remote that also **sends files to and from the TV**, **AirPlay** and **Miracast** screen mirroring, live follower counters, rotating and **Unsplash 4K** wallpapers, and a 1080p **Live TV** app. Every button reacts with a press animation. It's all **reversible**.
 
-Everything runs locally on your TV, requires under 40 MB of RAM, and is **100% reversible** at any time.
+> **Built and tested on:** Sharp AQUOS-TVW24C (MediaTek), **Android TV 14**, Malaysia firmware. The prayer-time location lookup was also tested on an Android TV emulator placed in Malaysia, Singapore, Bangladesh and the UK. It should run on most Android TV / Google TV sets (Android 9+). It does **not** run on Samsung Tizen, LG webOS or Fire TV.
+
+> A fork of [cleanyourtv](https://github.com/Gathin23/cleanyourtv) by Gathin, by way of Kulwant Nagi's edition (both MIT). See [Credits](#-credits-and-licenses).
 
 ---
 
-## 📺 Visual Showcase
+## Contents
 
-| Home Screen | App Grid & Miracast |
+- [Screenshots](#-screenshots)
+- [What's new](#-whats-new)
+- [Features](#-features)
+- [Install on your TV](#-install-on-your-tv-step-by-step)
+- [Phone remote](#-phone-remote)
+- [Sharing files with the TV](#-sharing-files-with-the-tv)
+- [Prayer times](#-prayer-times)
+- [Remote cheat sheet](#-remote-cheat-sheet)
+- [Privacy and network use](#-privacy-and-network-use)
+- [FAQ and troubleshooting](#-faq-and-troubleshooting)
+- [Undo everything](#-undo-everything)
+- [For developers](#-for-developers)
+- [Credits and licenses](#-credits-and-licenses)
+
+---
+
+## 📺 Screenshots
+
+| Home screen (as it looks after a fresh install) |
+|:---:|
+| ![Home screen](docs/images/launcher-home.png) |
+| *Greeting, clock, Hijri date and next-prayer countdown on the left; Inputs, AirPlay, Wallpaper, Wi-Fi and Settings on the right, with follower counters below. Dock: YouTube, SmartTube, Live TV, MovieBox, Play Store* |
+
+| App grid with Miracast | Long-press menu on a tile |
 |:---:|:---:|
-| ![Launcher Home](docs/images/launcher-home.png) | ![App Grid](docs/images/launcher-grid.png) |
-| *Personalized greeting, Hijri calendar, prayer countdown, and glowing dock* | *Custom 16:9 banners, including Samsung Smart View / Miracast* |
+| ![App grid](docs/images/launcher-grid.png) | ![Tile menu](docs/images/tv-remote-menu.png) |
+| *Every installed app as a 16:9 banner, including the Smart View / Miracast tile* | *Open, add or remove from the dock, reorder, replace, uninstall* |
 
-| Miracast (Smart View) Tile | App Tile Menu (Remote Long-Press) |
-|:---:|:---:|
-| <img src="docs/images/miracast-tile.png" alt="Miracast Smart View Tile" width="340"> | <img src="docs/images/tv-remote-menu.png" alt="Remote Long Press Context Menu" width="340"> |
-| *Native screen casting tile sorted cleanly under 'M'* | *Long-press OK to Open, Add/Remove from dock, Reorder, Replace, or Uninstall* |
+| Phone remote | Files | Apps & inputs | Wallpapers |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/images/phone-remote.png" alt="Phone remote with D-pad" width="200"> | <img src="docs/images/phone-files.png" alt="Files tab sending a video to the TV" width="200"> | <img src="docs/images/phone-apps.png" alt="Apps and inputs" width="200"> | <img src="docs/images/phone-unsplash.png" alt="Unsplash 4K wallpapers" width="200"> |
+| *D-pad by default, touchpad optional* | *Send, save, open and delete files* | *Launch any TV app or input* | *Pick a 4K photo and set it on the TV* |
 
-| Phone Remote: Siri Remote | Phone Remote: Apps & Inputs | Phone Remote: 4K Wallpapers |
-|:---:|:---:|:---:|
-| <img src="docs/images/phone-remote.png" alt="Phone remote: trackpad, buttons and keyboard" width="220"> | <img src="docs/images/phone-apps.png" alt="Phone remote: apps and inputs" width="220"> | <img src="docs/images/phone-unsplash.png" alt="Phone remote: Unsplash 4K Wallpapers" width="220"> |
-| *Zero-install Apple TV touch remote with trackpad & volume* | *Quick-launch inputs and all installed TV apps* | *Browse curated 4K Unsplash photography & set on TV* |
-
-| Live TV App | Category Sidebar |
+| Live TV app | Categories |
 |:---:|:---:|
 | ![Live TV](docs/images/live-tv-all.png) | ![News](docs/images/live-tv-news.png) |
-| *Ultra-fast 1080p channel streaming* | *Organized categories with instant cache* |
 
 ---
 
-## ✨ Features at a Glance
+## 🆕 What's new
 
-* **Clean Apple TV Interface**: Fluid D-pad navigation, custom Outfit typography, dynamic color-matching app glow, and an OLED pitch-black background or rotating family photo wallpapers.
-* **Personalized Header**:
-  * Time-aware greeting (`Good morning`, `Good afternoon`, `Good evening, Akhter & Ruby`).
-  * Current date and official **Islamic Hijri Calendar** (*e.g., 9 Jumada al-Ula 1448 AH*).
-  * **Accurate Prayer Times with Countdown** (*e.g., Fajr 5:39 in 6 h 34m*). Click the prayer text anytime to display a full on-screen schedule toast (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha).
-* **Quick-Access Top Pills**:
-  * 🔌 **Inputs**: Switch between HDMI 1, HDMI 2, AV, and TV inputs.
-  * 📺 **AirPlay**: Launches "My TV Airplay" to cast screens and music from iPhone, iPad, or Mac.
-  * 🖼️ **Wallpaper**: Opens the TV glass popup menu to switch rotation modes (`✨ Mix Both`, `📁 Local Only`, `🌄 Unsplash Only`), skip to the next wallpaper, delete photos, or 1-click download curated 4K Unsplash photography directly on the TV using the remote.
-  * 📶 **Wi-Fi**: Shows current Wi-Fi name (*e.g., Ruby Akhter*); click to open Network Settings.
-  * ⚙️ **Settings**: Opens standard Android / Google TV Settings.
-* **Social Media Counters**: Live follower & subscriber badges for YouTube, Instagram, and Facebook.
-* **Native Screen Mirroring**:
-  * **Apple AirPlay**: Full screen mirroring and audio streaming.
-  * **Samsung Smart View / Miracast**: Built-in Wi-Fi Display sink integration automatically styled with a custom screen cast banner and sorted under 'M' for easy launching from any Android phone or Windows PC.
-* **Home Button Interception**:
-  * Bypasses Google TV's forced ad launcher safely using a lightweight background accessibility service.
-  * Pressing **Home**, **double-pressing Home**, exiting apps via **Back**, or **turning on the TV** always returns straight to your clean launcher without black recovery screens or errors.
-* **Custom Rotating Wallpapers & Unsplash 4K Integration**:
-  * Rotate through **Local user photos**, curated **Unsplash 4K Ultra-HD photography**, or seamlessly **Mix Both**.
-  * Switch rotation modes directly on the TV screen via the **Wallpaper Pill** or from the phone web remote (`✨ Mix Both` | `📁 Local Only` | `🌄 Unsplash Only`).
-  * Built-in **Unsplash 4K Explorer** on the web remote and on-screen TV menu with curated collections (*Mountains & Nature*, *Dark OLED & Space*, *Moody Cities*, *Ocean Waves*, *Islamic Heritage*, *Minimalist & Art*).
-  * Direct one-tap "Set on TV" downloads over Wi-Fi, interactive pinch/drag framing canvas, and support for pasting any custom Unsplash photo link or ID.
-* **App Tile Management (Long-Press Remote OK)**:
-  * **On the Dock**: Long-press **OK / Center** (or press **Menu**) to show a glass context menu:
-    * `▶ Open`: Launch the app directly.
-    * `📌 Remove from dock`: Instantly remove the app (it safely returns to the grid below).
-    * `↔ Reorder…`: Interactive reordering menu (`Move Left`, `Move Right`, `Move to First`, `Move to Last`, `Done`) plus live remote **D-pad Left / Right** shortcuts to nudge the tile in real time.
-    * `🔄 Replace app…`: Pick any installed app from a list to swap with the selected dock tile.
-    * `🗑 Uninstall`: Prompts native Android TV uninstaller confirmation dialog for non-system apps.
-  * **In the App Grid**: Long-press **OK / Center** on any app tile to:
-    * `▶ Open`: Launch the app.
-    * `📌 Add to dock`: Pin the app to the main home dock row with automatic focus and scroll.
-    * `🗑 Uninstall`: Prompts native Android TV uninstaller confirmation dialog.
-* **Phone Web Remote**:
-  * Open `http://<TV-IP>:8080` on any phone browser.
-  * Includes a touch trackpad, volume controls, app launcher, wallpaper source mode switcher, Unsplash 4K explorer, and instant keyboard typing into search fields.
+The latest changes, all tested on the emulator first and then on the Sharp TV:
+
+| What | Before | Now |
+|---|---|---|
+| **Android version target** | Built for Android 9 (API 28). Play Protect warned "built for an older version of Android" | Built for **Android 14 (API 34)**. No warning. The home screen looks and works exactly as before |
+| **Button feel** | Buttons only changed colour | **Every tile, pill, menu row and dialog button presses down and springs back**, like a real button |
+| **Long-press OK** | Sometimes ignored, so Remove / Reorder didn't open | Reliable. A held OK no longer closes the Inputs or Wallpaper menus either |
+| **Phone remote** | Opened on the touchpad | **D-pad by default**; the touchpad is one tap away and your phone remembers the choice |
+| **File sharing** | Not possible | New **Files** tab: send files of any size to the TV, save the TV's files, open them on the TV, delete them |
+| **Prayer times** | Fixed to one zone | **Follow the TV's location**: JAKIM's official times for its zone anywhere in Malaysia, the local authority's times elsewhere |
+| **Fresh install** | Plain black home, stock dock | The home screen above: cubes wallpaper; dock with YouTube, SmartTube, Live TV, MovieBox, Play Store |
+| **Preinstalled apps** | Live TV only | **SmartTube** and **MovieBox** too (optional; uninstall them like any app and they stay gone) |
+| **Phone remote while the TV asks "Allow USB debugging?"** | The remote page froze | The page keeps working and keys resume once allowed |
+| **Install script** | Could install to the wrong device; reinstalled apps you had removed | Stops if two devices are connected; only updates apps still on the TV |
+| **Checks** | None | Unit tests, and GitHub builds and checks every push |
 
 ---
 
-## 🛠️ Beginner Installation Guide (Step-by-Step)
+## ✨ Features
 
-Follow these simple steps to set up your TV. You only need a computer (Mac, Windows, or Linux) connected to the **same Wi-Fi network** as your TV.
+### Home screen
+* **Clean, ad-free Apple TV look**: smooth D-pad navigation, Outfit font, a glow that matches the focused app's colours, a pitch-black or wallpaper background.
+* **Greeting** that follows the time of day (*Good morning / afternoon / evening, Akhter & Ruby*).
+* **Big clock, date and Hijri date** (*11 Jumada al-Ula 1448 AH*).
+* **Next prayer with a countdown** (*Fajr 5:39 in 5 h 50m*). Click it for the whole day's timetable. See [Prayer times](#-prayer-times).
+* **Follower counters** for YouTube channels, Facebook pages and Instagram accounts, refreshed every 30 minutes while the home screen is open.
+* **Press animation**: anything you press with OK shrinks slightly and springs back. It follows Android's animation speed, so turning animations off in Developer options turns it off too.
 
-### Step 1: Enable Developer Options on Your TV
-1. Turn on your TV and open **Settings** (gear icon in the top right).
-2. Go to:
-   * **Device Preferences → About** (on Android TV), OR
-   * **System → About** (on Google TV).
-3. Scroll down to **Android TV OS build** (or **Build**).
-4. Press the **OK / Center button on your remote 7 times**. You will see a message: *"You are now a developer!"*
-5. Press the Back button once to return to the previous menu.
-6. Open the newly appeared **Developer options** menu.
-7. Turn **ON** these two switches:
-   * ✅ **USB debugging**
-   * ✅ **Wireless debugging** (or **Network debugging** if your TV shows it).
+### Top bar (press Up from the dock)
+* 🔌 **Inputs**: HDMI ports, AV and Live TV in one small menu.
+* 📺 **AirPlay**: opens the AirPlay receiver so an iPhone, iPad or Mac can mirror or play to the TV.
+* 🖼️ **Wallpaper**: choose the rotation (`✨ Mix Both`, `📁 Local Only`, `🌄 Unsplash Only`), skip to the next photo, delete one, or download curated Unsplash 4K photos right on the TV.
+* 📶 **Wi-Fi**: shows the network name; click to open network settings.
+* ⚙️ **Settings**: the TV's own settings.
+
+### Dock and app grid
+* **Dock** of your favourite apps; press **Down** for every installed app as a 5-column grid of 16:9 banners.
+* **Long-press OK** (or press **Menu**) on any tile:
+  * Dock: `▶ Open`, `📌 Remove from dock`, `↔ Reorder…` (Move Left / Right / First / Last, or nudge with Left and Right), `🔄 Replace app…`, `🗑 Uninstall`.
+  * Grid: `▶ Open`, `📌 Add to dock`, `🗑 Uninstall`.
+* **Samsung Smart View / Miracast** tile in the grid, so Android phones and Windows PCs can cast to the TV.
+
+### Wallpapers
+* Rotate your own photos, curated **Unsplash 4K** photos, or both, fading every 30 seconds (configurable).
+* Six Unsplash collections (*Mountains & Nature*, *Dark OLED & Space*, *Moody Cities*, *Ocean Waves*, *Islamic Heritage*, *Minimalist & Art*), or paste any Unsplash link.
+* Send photos from your phone, frame them with pinch and drag, and set them on the TV.
+
+### Home button that stays yours
+* Google TV forces its own launcher on the Home button. A small accessibility service sends you back to this home screen when you press **Home**, double-press it, leave an app with **Back**, or **turn the TV on**.
+
+### Phone remote (no app to install)
+* Open `http://<TV-IP>:8080` on any phone, tablet or computer on the same Wi-Fi. The TV asks you to approve each new device.
+* **Remote**: D-pad (or touchpad), Back, Home, Play, Menu, Mute, ±10 s, volume, power, and a search box that types straight into the TV.
+* **Apps**: TV inputs and every installed app.
+* **Photos**: wallpaper mode, Unsplash 4K explorer, send your own photos.
+* **Files**: [send and receive files](#-sharing-files-with-the-tv).
+* **Siri**: copy links for Apple Shortcuts ("Hey Siri, open YouTube on TV") and for sending YouTube videos to the TV.
+* Installs as an app (PWA) on Android, iPhone, iPad, Mac, Windows and Linux.
+
+### Apps the installer adds
+* **Live TV**: a 1080p IPTV player with categories (News, Entertainment, Movies, Music, Sports…) from public playlists.
+* **AirPlay Server**: an AirPlay receiver for Apple devices.
+* **SmartTube**: ad-free YouTube for TVs.
+* **MovieBox**: a movie and series app. Play Protect flags it; see [the note](#step-6-build-and-install-in-one-command).
+
+The last three aren't stored in git; the installer adds them if you put their APKs in `apps/` (see Step 6). You can uninstall any of them later and they stay uninstalled.
+
+### Optional debloat
+* `./disable.sh profiles/sharp-aquos-tvw24c.txt` **disables** (never uninstalls) the Sharp's telemetry, ads tracking and unused preinstalled apps, while keeping tuner inputs, Chromecast, Miracast, Play Store and updates. Read the profile first; `./restore.sh` undoes it.
 
 ---
 
-### Step 2: Find Your TV's IP Address
-1. In your TV's **Settings**, go to **Network & Internet**.
-2. Click on the Wi-Fi network you are connected to.
-3. Look for the **IP address** (for example: `192.168.0.146` or `192.168.1.50`).
-4. Write this IP address down—you will use it to connect from your computer.
+## 🔧 Install on your TV (step by step)
 
----
+You need a computer (Mac, Windows or Linux) on the **same Wi-Fi** as the TV.
 
-### Step 3: Set Up Your Computer
+### Step 1: Turn on Developer options on the TV
+1. Open **Settings** on the TV.
+2. Go to **Device Preferences → About** (Android TV) or **System → About** (Google TV).
+3. Select **Android TV OS build** (or **Build**) and press **OK 7 times** until it says *"You are now a developer!"*
+4. Go back and open **Developer options**.
+5. Turn on **USB debugging**, and **Network debugging** / **Wireless debugging** if your TV has it.
 
-Choose your computer operating system below:
+### Step 2: Find the TV's IP address
+**Settings → Network & Internet →** your Wi-Fi network. Note the **IP address**, for example `192.168.0.146`.
 
-#### 🍏 On Mac (macOS):
-Open the **Terminal** app (press `Cmd + Space`, type `Terminal`, and press Enter).
-If you don't already have Homebrew, install it, then install Java and Android tools:
+### Step 3: Set up your computer
 
+**Mac** (Terminal):
 ```bash
-# 1. Install Java 17 and Android tools
 brew install openjdk@17
 brew install --cask android-commandlinetools
 brew install android-platform-tools
 ```
 
-#### 🪟 On Windows:
-1. Download and install **Git for Windows** from [git-scm.com](https://gitforwindows.org/) (use Git Bash).
-2. Download and install **Java JDK 17** from [adoptium.net](https://adoptium.net/).
-3. Download **Android SDK Platform-Tools (ADB)** from [developer.android.com/tools/releases/platform-tools](https://developer.android.com/tools/releases/platform-tools), extract the zip, and add the folder to your System PATH.
+**Windows**:
+1. Install [Git for Windows](https://gitforwindows.org/) and use **Git Bash** for the commands below.
+2. Install [Java JDK 17](https://adoptium.net/).
+3. Download [Android Platform-Tools](https://developer.android.com/tools/releases/platform-tools), unzip it, and add the folder to your PATH.
 
-#### 🐧 On Linux (Ubuntu / Debian):
+**Linux (Ubuntu / Debian)**:
 ```bash
-sudo apt update
-sudo apt install openjdk-17-jdk adb git
+sudo apt update && sudo apt install openjdk-17-jdk adb git
 ```
 
----
-
-### Step 4: Clone this Project
-Open your computer's terminal and run:
-
+### Step 4: Get this project
 ```bash
-git clone https://github.com/your-username/ahkter-tv-remake.git
+git clone https://github.com/arakaneserohingya/ahkter-tv-remake.git
 cd ahkter-tv-remake
 ```
 
----
-
-### Step 5: Connect Your Computer to the TV Over Wi-Fi
-Replace `192.168.0.146` with your TV's actual IP address from Step 2:
-
+### Step 5: Connect to the TV
 ```bash
-adb connect 192.168.0.146:5555
+adb connect 192.168.0.146:5555     # your TV's IP from Step 2
+adb devices                        # the TV should show as "device"
 ```
+The TV shows **"Allow USB debugging?"**. Tick **Always allow from this computer** and press **OK**.
 
-**⚠️ IMPORTANT STEP ON YOUR TV SCREEN:**
-A popup will immediately appear on your TV: **"Allow USB debugging?"**
-1. Use your TV remote to tick the checkbox: **"Always allow from this computer"**.
-2. Click **OK / Allow**.
+> If macOS blocks `adb`, run `./setup.sh` and `tools/find-tv.sh` once. The install script then uses `tools/tv` by itself.
 
-Check that the connection is active:
+### Step 6: Build and install in one command
 ```bash
-adb devices
-```
-You should see your TV listed with the status `device`:
-```text
-List of devices attached
-192.168.0.146:5555    device
+./build_and_install.sh
 ```
 
----
+What it does:
+1. Builds the launcher and installs it.
+2. Installs **Live TV**. (The launcher also installs it by itself on first start. If you uninstall it, it stays gone; **Inputs → Live TV** brings it back.)
+3. Installs **AirPlay Server** if `apps/airplay/airplay-release.apk` is there. Get it from [F-Droid](https://f-droid.org/packages/io.github.jqssun.airplay/) or [GitHub](https://github.com/jqssun/android-airplay-server) and save it under that name.
+4. Installs **SmartTube** and **MovieBox** if `apps/smarttube/smarttube.apk` and `apps/moviebox/moviebox.apk` are there. Get SmartTube from [its GitHub page](https://github.com/yuliskov/SmartTube). For MovieBox, copy the APK from a TV that has it (`adb shell pm path com.community.mbox.tv`, then `adb pull` that path).
+5. Grants the permissions the launcher needs: location (for the Wi-Fi name and prayer times), drawing over apps (pairing prompts), notifications (the remote's background service), file access (the Files tab) and app installs (APKs from the Files tab).
+6. Sets the launcher as the home app and turns on the Home button service.
 
-### Step 6: Customize Your Settings (Optional)
+The TV switches to the new home screen straight away.
 
-Open the configuration file in any text editor:
-`launcher/app/src/main/res/values/config.xml`
+> **Play Protect on a new TV.** Google may ask before installing **MovieBox** ("Harmful app blocked"): choose **Install anyway** to keep it or **Got it** to skip it. The script carries on either way. The launcher itself no longer gets a warning now that it targets Android 14.
+>
+> **Running it again** updates the apps that are still on the TV. It never reinstalls one you removed.
+>
+> **Two devices connected** (say, the TV and an emulator)? The script stops and asks which one:
+> `DEVICE_ID=192.168.0.146:5555 ./build_and_install.sh`
 
-Here are the easy settings you can change:
+### Step 7 (optional): Make it yours
+Edit `launcher/app/src/main/res/values/config.xml`, then run `./build_and_install.sh` again.
 
 ```xml
-<!-- 1. Your Custom Greeting Name -->
-<!-- Note: If using an ampersand (&), write it as &amp; -->
+<!-- Name in the greeting. Write & as &amp; -->
 <string name="greeting_name">Akhter &amp; Ruby</string>
 
-<!-- 2. Apps on the Main Dock (left to right by package name) -->
+<!-- Dock apps, left to right, by package name. Missing apps are skipped -->
 <string-array name="dock_packages">
     <item>com.google.android.youtube.tv</item>
     <item>org.smarttube.stable</item>
-    <item>com.netflix.ninja</item>
-    <item>com.kulwant.livetv</item>
-    <item>my.com.tm.telekom.unifitv.tv</item>
+    <item>com.nk.live_tv</item>
+    <item>com.community.mbox.tv</item>
+    <item>com.android.vending</item>
 </string-array>
 
-<!-- 3. Number of Apps Per Row (3 to 6, default is 5) -->
+<!-- Apps per row, 3 to 6 -->
 <integer name="columns">5</integer>
 
-<!-- 4. Islamic Prayer Times Zone (JAKIM e-Solat official code) -->
-<!-- Examples: WLY01 (Kuala Lumpur/Putrajaya), SGR01 (Gombak/PJ/Selangor), JHR02 (Johor Bahru) -->
-<string name="prayer_zone">WLY01</string>
+<!-- Apps never shown in the grid -->
+<string-array name="hidden_packages">...</string-array>
 
-<!-- 5. Social Media Follower Counters (shown in top-right) -->
+<!-- Follower counters: YouTube handles, Facebook pages, Instagram usernames -->
 <string-array name="youtube_channels">
     <item>@akhterhusin_rkb</item>
     <item>@rubyahkterchth</item>
 </string-array>
 <string-array name="facebook_pages">
     <item>ahkter.husin</item>
+    <item>RohingyaSongs</item>
 </string-array>
+<string-array name="instagram_users"></string-array>
 
-<!-- 6. Background Wallpaper (true for rotating photos, false for pure pitch-black OLED) -->
+<!-- Wallpaper: false = pitch black. Seconds between photos. Source: both, local or unsplash -->
 <bool name="use_wallpaper">true</bool>
 <integer name="wallpaper_seconds">30</integer>
-<!-- Wallpaper source: "both" (default), "local", or "unsplash" -->
 <string name="wallpaper_source">both</string>
+
+<!-- Prayer times: leave empty to follow the TV's location (recommended).
+     Type a JAKIM zone code (JHR02, WLY01, SGR01...) only if the TV gets its location wrong, e.g. behind a VPN -->
+<string name="prayer_zone"></string>
 ```
 
-> **💡 How to find an app's package name?**
-> Run: `adb shell pm list packages -3` to see all apps you installed, or open the **Apps** tab on the phone remote.
+Your own wallpapers go in `launcher/app/src/main/res/drawable-nodpi/` as `wallpaper_1.jpg`, `wallpaper_2.jpg`, … (1280×720).
+
+> **Finding an app's package name:** `adb shell pm list packages -3`, or the **Apps** tab of the phone remote.
 
 ---
 
-### Step 7: Build and Install in One Command
+## 📱 Phone remote
 
-Run the master install script in your terminal:
+1. Connect your phone to the same Wi-Fi as the TV.
+2. Open `http://<TV-IP>:8080` in Safari or Chrome (for example `http://192.168.0.146:8080`).
+3. Tap **Pair with TV**. The TV asks *"Allow this phone to control the TV?"*: press **Right**, then **OK** on the TV remote.
+4. Install it as an app:
+   * **iPhone / iPad (Safari):** Share → **Add to Home Screen**.
+   * **Android (Chrome):** ⋮ → **Add to Home screen**. **Samsung Internet:** ≡ → **Add page to → Home screen**.
+   * **Mac:** the install icon in Chrome / Edge's address bar, or **File → Add to Dock…** in Safari.
+   * **Windows / Linux:** the install icon in Chrome or Edge.
+   * Or tap the **⤓** button at the top of the remote.
 
-```bash
-./build_and_install.sh
-```
-
-#### What this script does automatically:
-1. Compiles the native launcher app.
-2. Automatically copies and installs the 1080p **Live TV app**.
-3. Installs and configures **My TV Airplay**.
-4. Automatically grants required TV permissions (`ACCESS_COARSE_LOCATION` for Wi-Fi SSID, `SYSTEM_ALERT_WINDOW` for phone pairing).
-5. **Enables the Home Interception Service** so your remote's Home button opens your clean launcher every time.
-
-Your TV screen will immediately switch over to your new launcher!
+Pairing is per device. **Siri → Unpair This Phone** removes it.
 
 ---
 
-## 📱 Setting Up the Phone Web Remote
+## 📂 Sharing files with the TV
 
-No app needs to be installed on your phone. The TV hosts its own remote control web page:
+Open the **Files** tab on the phone remote, from a phone or a computer's browser (same address, paired the same way). Files live in the TV's **Download** folder.
 
-1. Make sure your phone is connected to the same Wi-Fi as your TV.
-2. Open Safari or Chrome on your phone and go to:
-   ```text
-   http://<TV-IP>:8080
-   ```
-   *(Example: `http://192.168.0.146:8080`)*
-3. Tap the button: **"Pair with TV"**.
-4. A prompt will appear on your TV screen: *"Allow this phone to control the TV?"*
-   * Press **Right Arrow**, then **OK** on your physical TV remote to approve.
-5. **Install as a Web App on ANY Operating System (PWA)**:
-   * **📲 In-App Button**: Tap the **Install (⤓)** icon in the top header or click **"Install App on this Device"** on the pairing screen.
-   * **🤖 On Android (Samsung / Chrome / Edge)**:
-     * In **Chrome**: Tap **⋮ (Three Dots) → Add to Home screen** (or **Create shortcut**). It creates a dedicated launcher tile that opens in full-screen standalone mode without any browser URL bar! *(See FAQ below for the Chrome WebAPK flag trick).*
-     * In **Samsung Internet**: Tap **≡ (Menu) → Add page to → Home screen** for instant 1-tap installation.
-   * **🍏 On iPhone & iPad (Safari)**: Tap the **Share** button (⎋ / 📤) → tap **Add to Home Screen (➕)** → tap **Add**.
-   * **💻 On Mac (macOS)**:
-     * In Chrome or Edge: Click the **Install (⤓)** icon in your address bar to add it to your macOS Applications & Launchpad.
-     * In Safari: Choose **File → Add to Dock…** to run it as a native Mac app.
-   * **🪟 On Windows & Linux (PC)**: Click the **Install (⤓)** button in Chrome or Edge to pin the remote to your Taskbar or Start Menu.
-6. You now have an ad-free, full-screen standalone TV remote with fluid trackpad, live search keyboard, TV input switcher, and 4K photo uploader that opens instantly on any phone, tablet, or computer!
+* **+ Send to TV**: pick files, or drag them onto the page on a computer. Any type and any size (videos, photos, APKs, documents). Each file shows its progress, and the TV says "Received …" when it's done.
+* **⬇ Save**: download a file from the TV, including files other TV apps saved in Download.
+* **▶ Open on TV**: opens the file in a TV app that handles it (photos, video, music, PDF…). An **APK** opens the TV's installer, so this is an easy way to install apps. If no TV app opens that type, the page says so; a player like VLC covers most media.
+* **🗑 Delete**: removes the file from the TV.
 
-### 📱 Phone Remote Tabs & Features
-
-| Remote (Apple TV Siri Remote) | Apps & Inputs Drawer | Wallpapers & Unsplash 4K Explorer |
-|:---:|:---:|:---:|
-| <img src="docs/images/phone-remote.png" alt="Touch Remote Screen" width="230"> | <img src="docs/images/phone-apps.png" alt="Apps Drawer Screen" width="230"> | <img src="docs/images/phone-unsplash.png" alt="Unsplash 4K Explorer Screen" width="230"> |
-| *Smooth fluid trackpad, physical D-pad toggle, volume rocker, TV power, and real-time search typing* | *Instant 1-tap switching between TV inputs (HDMI 1-4, AV) and launching any TV app* | *Switch rotation modes (`Mix Both`, `Local`, `Unsplash`), browse 4K collections, and send photos to TV* |
+The TV keeps at least 100 MB free and refuses a file that wouldn't fit. A file with the same name as one already there is saved as a numbered copy. Half-sent files never appear in the list.
 
 ---
 
-## 🕹️ Everyday Controls & Remote Cheat-Sheet
+## 🕌 Prayer times
 
-| Action | What to Press on Physical Remote |
+The TV works out where it is and shows the right times for that place, every day:
+
+1. **Where the TV is:** the TV's own location (Android TVs find it from nearby Wi-Fi networks). If location is off, the TV's internet address.
+2. **In Malaysia:** the **official JAKIM e-Solat times** for the zone the TV is in (JHR02 for Johor Bahru, WLY01 for Kuala Lumpur, SGR01 for Gombak / Petaling…). If e-Solat is down, the same place calculated with JAKIM's method.
+3. **Anywhere else:** the local authority's method for that country (for example MUIS in Singapore, Umm al-Qura in Saudi Arabia), via Aladhan.
+4. Times refresh daily and whenever the TV moves. If the internet is down, the last times stay up and it tries again every 15 minutes.
+
+The Hijri date comes with the times. Click the prayer line on the home screen for the full timetable.
+
+If the TV is behind a VPN (so it seems to be somewhere else), type your JAKIM zone into `prayer_zone` in `config.xml`.
+
+---
+
+## 🎮 Remote cheat sheet
+
+| To… | Press on the TV remote |
 |---|---|
-| **Navigate Tiles** | **Arrow Keys** (Left / Right / Up / Down) |
-| **Open App** | **OK / Center Button** |
-| **Access Top Menu** | Press **Up** from the dock row (Inputs, AirPlay, Wi-Fi, Settings) |
-| **Browse All Installed Apps** | Press **Down** from the dock row to scroll into the 5-column app grid |
-| **App Context Menu (Dock & Grid)** | **Long-press OK** (or press **Menu**) on any app tile to Open, Add/Remove from dock, Reorder, Replace, or Uninstall |
-| **Interactive Dock Reordering** | In the Reorder menu, press **Left / Right** on the remote to nudge the tile in real-time |
-| **View Full Prayer Timetable** | Click the **Time / Prayer text** in the top-left corner |
-| **Screen Cast (Android/Samsung)** | Click the **Miracast (Smart View)** tile in the app grid |
-| **Screen Mirror (Apple/iPhone)** | Click the **AirPlay** pill in the top menu |
-
-### 🎛️ On-Screen Tile Functions (Long-Press Remote OK)
-
-<p align="center">
-  <img src="docs/images/tv-remote-menu.png" alt="On-Screen Tile Context Menu" width="600">
-</p>
-
-Long-press **OK / Center** (or press the **Menu** button) on any dock tile or grid app to open its glass context menu:
-* **▶ Open**: Launch the selected app directly.
-* **📌 Remove from dock / Add to dock**: Pin apps to the home dock row or return them to the grid below.
-* **↔ Reorder…**: Interactive reordering mode (`Move Left`, `Move Right`, `Move to First`, `Move to Last`, `Done`) plus live remote **D-pad Left / Right** shortcuts to nudge the tile in real time.
-* **🔄 Replace app…**: Choose any installed app from a list to swap with the selected dock tile.
-* **🗑 Uninstall**: Triggers the official native Android TV uninstallation dialog for non-system apps.
+| Move around | **Arrows** |
+| Open an app | **OK** |
+| Top bar (Inputs, AirPlay, Wallpaper, Wi-Fi, Settings) | **Up** from the dock |
+| All apps | **Down** from the dock |
+| Tile menu (open, dock, reorder, replace, uninstall) | **Hold OK**, or press **Menu** |
+| Move a dock tile while reordering | **Left / Right** |
+| Full prayer timetable | **OK** on the prayer line |
+| Cast from Android / Windows | **Miracast (Smart View)** tile in the grid |
+| Mirror from iPhone / Mac | **AirPlay** in the top bar |
 
 ---
 
-## ❓ Frequently Asked Questions & Troubleshooting
+## 🔒 Privacy and network use
 
-### Q: On Android (Samsung / Chrome), why does it say "This app cannot be installed, but can create shortcut"?
-**A:** This is Google Chrome's standard security requirement for local private home networks:
-* **Why this happens**: Google Chrome requires an encrypted **HTTPS (SSL)** certificate or `localhost` to package a full WebAPK. Because your TV hosts the remote directly on your private home Wi-Fi at a local IP address (e.g., `http://192.168.0.146:8080`), it runs over local HTTP.
-* **Does "Create shortcut" work the same?**: **Yes, 100%!** When you tap **"Create shortcut"** (or **"Add to Home screen"**), Chrome adds the TV Remote app icon to your Samsung home screen. Thanks to our standalone PWA manifest and `<meta name="mobile-web-app-capable" content="yes">`, tapping that icon opens a **full-screen, borderless app** without the Chrome URL bar or tabs.
-* **Samsung Galaxy Tip**: If you use the built-in **Samsung Internet** browser, tap the bottom menu (**≡**) → **Add page to** → **Home screen** to install it directly with zero warnings.
-* **Power-User Chrome Trick (Force Native WebAPK Installation)**:
-  1. In Chrome on your phone, navigate to:
-     ```text
-     chrome://flags/#unsafely-treat-insecure-origin-as-secure
-     ```
-  2. In the text box, type your TV's address: `http://<TV-IP>:8080` (for example: `http://192.168.0.146:8080`).
-  3. Toggle the dropdown to **Enabled** and tap **Relaunch**.
-  4. Chrome will now treat your TV as a secure origin and display the native **"Install App"** prompt directly!
+No accounts, no ads, no analytics. Nothing is sent anywhere except the requests below.
 
-### Q: Why does pressing Home or waking the TV briefly show Google TV?
-**A:** Google TV firmware hardcodes `KEYCODE_HOME` to launch Google's ad launcher. Our built-in **HomeInterceptService** monitors window changes in real time and redirects you back to Akhter & Ruby TV Home within 80 milliseconds.
+**From the TV (launcher):**
 
-### Q: How do I re-enable the Home button redirect if it stops working?
-If you updated TV firmware or restarted accessibility services, run this single command:
+| Service | Why | What it sees |
+|---|---|---|
+| [solat.my](https://solat.my) | Which JAKIM zone the TV is in | Coordinates rounded to about 1 km |
+| [e-solat.gov.my](https://www.e-solat.gov.my) | Malaysia's official prayer times | The zone code |
+| [api.aladhan.com](https://aladhan.com/prayer-times-api) | Prayer times outside Malaysia, or when e-Solat is down | Coordinates rounded to about 1 km |
+| [ipwho.is](https://ipwho.is), then [ip-api.com](https://ip-api.com) | Rough location, only when the TV's own location is off | The TV's internet address |
+| Android's geocoder | City name for the prayer line | The TV's location (Android's own service) |
+| youtube.com, facebook.com, instagram.com | Follower counts, every 30 minutes | Public pages of the accounts in `config.xml` |
+| images.unsplash.com | Only when you pick an Unsplash wallpaper | Which photo |
+
+**From your phone's browser (remote page):** Google Fonts for the font, and Unsplash photo previews in the Photos tab.
+
+**On your home network only:**
+* The phone remote and the Files tab are served by the TV on port **8080**. Only devices you approve on the TV can use it, and files go straight between your phone and the TV. It is plain HTTP, like most things on a home network, so use it on a Wi-Fi you trust.
+* The launcher presses remote keys for the phone remote through the TV's own network debugging (ADB on port 5555), which stays on. Any new computer that connects to it must be approved on the TV screen first.
+
+**Other apps:** Live TV streams public channels listed by [iptv-org](https://github.com/iptv-org/iptv). AirPlay Server, SmartTube and MovieBox are separate apps with their own behaviour; MovieBox is flagged by Play Protect, so skip it if you're unsure.
+
+---
+
+## ❓ FAQ and troubleshooting
+
+**Pressing Home or turning the TV on briefly shows Google TV.**
+Google TV firmware sends Home to its own launcher. The Home button service switches back right away. If it stops after a firmware update:
 ```bash
 adb shell settings put secure enabled_accessibility_services com.kulwant.atvhome/.HomeInterceptService
 adb shell settings put secure accessibility_enabled 1
 ```
 
-### Q: ADB says "failed to connect" or "Connection refused"
-1. Verify both your computer and TV are connected to the exact same Wi-Fi network (not guest Wi-Fi).
-2. Check that **Network Debugging / USB Debugging** is still toggled **ON** in TV Developer Options.
-3. Restart ADB on your computer:
-   ```bash
-   adb kill-server
-   adb connect <TV-IP>:5555
-   ```
+**The prayer times are for the wrong place.**
+Turn on location in the TV's settings, or set `prayer_zone` in `config.xml` (see [Prayer times](#-prayer-times)).
 
-### Q: ADB says "device unauthorized"
-Look at your TV screen. A prompt asking **"Allow USB debugging?"** is waiting for your confirmation. Select **"Always allow from this computer"** and press **OK**.
-
-### Q: The Wi-Fi pill in the top right does not show my Wi-Fi name
-Android requires location permission to read Wi-Fi network names (SSID). Run:
+**The Wi-Fi pill doesn't show the network name.**
+Android only gives apps the Wi-Fi name with location permission:
 ```bash
-adb shell pm grant com.kulwant.atvhome android.permission.ACCESS_COARSE_LOCATION
+adb shell pm grant com.kulwant.atvhome android.permission.ACCESS_FINE_LOCATION
 ```
 
-### Q: How do I completely uninstall and revert back to factory default?
-If you ever want to revert everything back to stock:
+**The Files tab says "File sharing is off on the TV".**
+Run `./build_and_install.sh` again, or:
 ```bash
-# 1. Disable the accessibility service
-adb shell settings put secure enabled_accessibility_services '""'
-adb shell settings put secure accessibility_enabled 0
-
-# 2. Uninstall custom apps
-adb uninstall com.kulwant.atvhome
-adb uninstall com.kulwant.livetv
-adb uninstall io.github.jqssun.airplay
+adb shell appops set com.kulwant.atvhome MANAGE_EXTERNAL_STORAGE allow
 ```
-Your TV will immediately return to its original stock state with zero leftover modifications.
+
+**The phone remote's keys stopped working.**
+Look at the TV: it's probably asking **"Allow USB debugging?"**. Tick **Always allow** and press **OK**. Also check that Network debugging is still on in Developer options.
+
+**Chrome on Android says "This app cannot be installed, but can create shortcut".**
+Chrome only makes full app installs for HTTPS sites, and the TV serves the remote over local HTTP. **Create shortcut** works the same: it opens full screen without the address bar. To get the real install prompt: open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, add `http://<TV-IP>:8080`, set it to **Enabled** and relaunch Chrome. Samsung Internet installs it without this.
+
+**ADB says "failed to connect" or "Connection refused".**
+Check both devices are on the same Wi-Fi (not a guest network) and debugging is still on, then:
+```bash
+adb kill-server
+adb connect <TV-IP>:5555
+```
+
+**ADB says "unauthorized".**
+Accept **"Allow USB debugging?"** on the TV, with **Always allow from this computer** ticked.
 
 ---
 
-## 📜 Credits and Licenses
+## 🔙 Undo everything
 
-* Core Launcher code is licensed under the **MIT License**.
-* **Live TV App**: Modified fork of [kananinirav/Indian-IPTV-App](https://github.com/kananinirav/Indian-IPTV-App) (MIT License). Streams sourced from public legal IPTV playlists via [iptv-org](https://github.com/iptv-org/iptv).
-* **Remote Key Injection**: Powered by [dadb](https://github.com/mobile-dev-inc/dadb) (Apache 2.0).
-* **Typography**: [Outfit Font Family](https://github.com/Outfitio/Outfit-Fonts) (SIL Open Font License).
-* All app icons and trademarks belong to their respective owners.
+```bash
+# 1. Turn off the Home button service
+adb shell settings put secure enabled_accessibility_services '""'
+adb shell settings put secure accessibility_enabled 0
+
+# 2. Remove the apps this project added
+adb uninstall com.kulwant.atvhome
+adb uninstall com.nk.live_tv
+adb uninstall io.github.jqssun.airplay
+adb uninstall org.smarttube.stable
+adb uninstall com.community.mbox.tv
+
+# 3. Only if you ran ./disable.sh: switch the disabled apps back on
+./restore.sh profiles/<your-tv>.txt
+```
+The TV is back to stock. `./backup.sh` saves the TV's settings and app lists before you change anything, if you want a record.
+
+---
+
+## 🧑‍💻 For developers
+
+### Project layout
+| Path | What |
+|---|---|
+| `launcher/` | The home screen (Java, Android 9+, targets Android 14). Package `com.kulwant.atvhome` |
+| `launcher/app/src/main/res/values/config.xml` | Everything you're meant to customise |
+| `launcher/app/src/main/assets/phone.html` | The phone remote (one HTML file served by the TV) |
+| `apps/live-tv/` | Live TV app (Flutter). Build with `./build_live_tv.sh` |
+| `apps/airplay`, `apps/smarttube`, `apps/moviebox` | Where the optional APKs go (not in git) |
+| `profiles/` | Debloat lists for `disable.sh` / `restore.sh` |
+| `tools/` | `find-tv.sh` finds TVs on the network; `tv` is an ADB client for when macOS blocks `adb` |
+| `PROMPT.md` | The prompt to rebuild all of this with an AI coding assistant |
+
+### Checking a change
+Try it on the emulator first (Android Studio → **Television 1080p**), then on the TV. These run on your computer, and GitHub runs them on every push:
+
+```bash
+(cd launcher && ./gradlew assembleDebug testDebugUnitTest)   # launcher builds, unit tests pass
+(cd apps/live-tv && flutter analyze)                         # Live TV app has no issues
+```
+
+---
+
+## 📜 Credits and licenses
+
+* **Original project:** [cleanyourtv](https://github.com/Gathin23/cleanyourtv) by [Gathin](https://github.com/Gathin23), MIT. The launcher, debloat scripts, tools and prompt started there. This edition builds on **Kulwant Nagi**'s version of it (MIT, see [LICENSE](LICENSE)).
+* **This edition:** [Akhter Husin](https://github.com/arakaneserohingya), for a Sharp AQUOS TV in Malaysia.
+* **Live TV app:** fork of [kananinirav/Indian-IPTV-App](https://github.com/kananinirav/Indian-IPTV-App) (MIT). Channels from [iptv-org](https://github.com/iptv-org/iptv).
+* **AirPlay receiver:** [AirPlay Server](https://github.com/jqssun/android-airplay-server) by jqssun, based on UxPlay (GPL-3.0). A separate app, not part of the launcher.
+* **Prayer times:** [JAKIM e-Solat](https://www.e-solat.gov.my), [solat.my](https://solat.my) and [Aladhan](https://aladhan.com).
+* **Remote key presses:** [dadb](https://github.com/mobile-dev-inc/dadb) (Apache 2.0).
+* **Font:** [Outfit](https://github.com/Outfitio/Outfit-Fonts) (SIL Open Font License).
+* **Wallpapers:** photos from [Unsplash](https://unsplash.com).
+* App icons and trademarks belong to their owners.
